@@ -738,3 +738,17 @@ button.danger { border-color: rgba(255,107,107,.35); }
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
 }
+
+/* When labels are hidden, make each tile a centered icon */
+.noLabels .cell{
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.noLabels .cell .symInner{
+  font-size: 30px; /* optional: slightly larger */
+}
+
+.noLabels .cell .symName{
+  display: none;
+}

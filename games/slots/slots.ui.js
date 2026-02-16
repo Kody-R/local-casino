@@ -109,6 +109,7 @@ export function mountSlots(mountEl, store) {
   const themeKey = el.theme.value;
   const theme = THEMES[themeKey];
   applyTheme(mountEl, theme);
+  mountEl.classList.toggle("noLabels", theme.showLabels === false);
   renderStatic(el.reels, theme);
   clearHighlights(mountEl);
 
@@ -247,6 +248,7 @@ function highlightWins(mountEl, theme, res) {
       const themeKey = el.theme.value;
       const theme = THEMES[themeKey];
       applyTheme(mountEl, theme);
+      mountEl.classList.toggle("noLabels", theme.showLabels === false);
 
       // Load meters once per spin (simple + safe). You can cache later.
       const progCfg = theme.bonus?.holdSpin?.progressive;
