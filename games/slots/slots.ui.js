@@ -44,6 +44,7 @@ export function mountSlots(mountEl, store) {
 
       <button id="sl_spin" class="ok">SPIN</button>
 
+
       <div class="muted" id="sl_bank">—</div>
     </div>
 
@@ -74,6 +75,12 @@ export function mountSlots(mountEl, store) {
       <div id="sl_detail" class="muted">—</div>
     </div>
 
+   <details class="settings" open>
+     <summary>Rules / Hints</summary>
+     <div class="help" id="sl_rules"></div>
+   </details>
+
+
     <div id="sl_overlay" class="slotOverlay hidden">
       <div class="overlayCard">
         <div id="sl_overlay_title" class="value">Bonus</div>
@@ -100,7 +107,7 @@ export function mountSlots(mountEl, store) {
     winSummary: mountEl.querySelector("#sl_winSummary"),
     winList: mountEl.querySelector("#sl_winList"),
     btnClearHL: mountEl.querySelector("#sl_clearHL"),
-
+    rules: mountEl.querySelector("#sl_rules"),
   };
 
   
@@ -110,8 +117,9 @@ export function mountSlots(mountEl, store) {
   const theme = THEMES[themeKey];
   applyTheme(mountEl, theme);
   mountEl.classList.toggle("noLabels", theme.showLabels === false);
-  renderStatic(el.reels, theme);
+  renderStatic(el.reels, THEMES[el.theme.value]);
   clearHighlights(mountEl);
+  renderRules(el, theme);
 
 
   // refresh meters to the selected theme
@@ -134,6 +142,7 @@ export function mountSlots(mountEl, store) {
 
   // initial render
   renderStatic(el.reels, THEMES[el.theme.value]);
+  renderRules(el, THEMES[el.theme.value]);
 
   async function refreshBank() {
     const pid = store.currentPlayerId;
@@ -198,6 +207,40 @@ function renderWinBreakdown(el, theme, res, bet) {
     `;
     el.winList.appendChild(div);
   }
+}
+
+function renderRules(el, theme) {
+  if (!el?.rules) return;
+  
+  const scatNeed = theme.bonus?.freeSpins?.scatterNeeded ?? 3;
+  const fsAwards = theme.bonus?.freeSpins?.awards ?? {};
+  const holdNeed = theme.bonus?.holdSpin?.triggerCoins ?? 6;
+
+  // What counts as a "coin" for Hold&Spin
+  const coinSyms = Object.keys(theme.symbols).filter(s =>
+    theme.symbols[s]?.coin || theme.symbols[s]?.jackpot
+  );
+
+  const coinIcons = coinSyms.map(s => iconFor(theme, s)).join(" ");
+
+  el.rules.innerHTML = `
+    <div style="display:grid; gap:10px;">
+      <div>
+        <b>Free Spins:</b> land <b>${scatNeed}+</b> ${iconFor(theme, "S")} <i>Scatter</i> anywhere.
+        ${Object.keys(fsAwards).length ? `Awards: ${Object.entries(fsAwards).map(([k,v])=>`${k}=${v}`).join(", ")}.` : ``}
+      </div>
+
+      <div>
+        <b>Hold &amp; Spin:</b> land <b>${holdNeed}+</b> coin symbols anywhere:
+        <span class="mono">${coinIcons}</span>
+        (coins include jackpots).
+      </div>
+
+      <div class="muted">
+        Tip: Higher lines/bet may slightly increase feature frequency depending on the machine settings.
+      </div>
+    </div>
+  `;
 }
 
 

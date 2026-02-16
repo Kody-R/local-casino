@@ -752,3 +752,21 @@ button.danger { border-color: rgba(255,107,107,.35); }
 .noLabels .cell .symName{
   display: none;
 }
+
+/* Make all selects readable (matches your dark theme) */
+select{
+  background: rgba(8,14,30,.85);
+  color: #eaf0ff;
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+/* Dropdown list items */
+select option{
+  background: #0b1226;
+  color: #eaf0ff;
+}
+
+/* Disabled options still readable */
+select option:disabled{
+  color: rgba(234,240,255,.45);
+}
