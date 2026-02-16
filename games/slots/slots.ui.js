@@ -3,7 +3,17 @@ import { THEMES, THEME_KEYS } from "./slots.themes.js";
 import { spinSlots, startHoldSpin, holdSpinStep } from "./slots.engine.js";
 
 
-const SYM_EMOJI = { W:"⭐", A:"A", K:"K", Q:"Q", J:"J", T:"10", S:"🟢", B:"🎁" };
+const DEFAULT_ICONS = {
+  W:"⭐", A:"A", K:"K", Q:"Q", J:"J", T:"10",
+  S:"🟢", B:"🎁", C:"🪙",
+  MJ:"🎟️", MR:"💠", MJ2:"👑"
+};
+
+function iconFor(theme, sym) {
+  return (theme?.icons && theme.icons[sym]) ?? DEFAULT_ICONS[sym] ?? sym;
+}
+
+
 
 export function mountSlots(mountEl, store) {
   mountEl.innerHTML = `
@@ -455,28 +465,28 @@ function renderStatic(reels, theme) {
 }
 
 
-function makeStripHTML(symbols, theme, reelIndex=null) {
-  return symbols.map((s, idx) => {
-    const meta = theme.symbols[s] ?? { name: s };
-    const label = meta.jackpot ? meta.name : (meta.name ?? s);
+function makeStripHTML(symbols, theme, reelIndex = null) {
+  return symbols.map((sym, idx) => {
+    const meta = theme.symbols[sym] ?? { name: sym };
+    const label = meta.jackpot ? meta.name : (meta.name ?? sym);
 
-    // Only last 3 are "final grid" cells with row data.
-    // During animation filler, omit row/reel so it doesn't get highlighted.
     const isFinalCell = (reelIndex !== null) && (idx >= symbols.length - 3);
     const row = isFinalCell ? (idx - (symbols.length - 3)) : null;
 
     const attrs = isFinalCell
-      ? `data-row="${row}" data-reel="${reelIndex}" data-sym="${s}"`
-      : `data-sym="${s}"`;
+      ? `data-row="${row}" data-reel="${reelIndex}" data-sym="${sym}"`
+      : `data-sym="${sym}"`;
 
     return `
-      <div class="cell" ${attrs}>
-        <div class="sym">${SYM_EMOJI[s] ?? s}</div>
-        <div class="symName">${label}</div>
-      </div>
-    `;
+    <div class="cell" ${attrs}>
+      <div class="symInner">${iconFor(theme, sym)}</div>
+      ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
+    </div>
+`;
+
   }).join("");
 }
+
 
 
 async function animateToGrid(reels, grid, delays, theme) {
@@ -501,21 +511,25 @@ async function animateToGrid(reels, grid, delays, theme) {
       ]);
 
       strip.innerHTML = finalSyms.map((sym, idx) => {
-        const isFinal = idx >= finalSyms.length - 3;
-        const row = isFinal ? idx - (finalSyms.length - 3) : null;
+      const isFinal = idx >= finalSyms.length - 3;
+      const row = isFinal ? idx - (finalSyms.length - 3) : null;
+          
+      const attrs = isFinal
+        ? `data-row="${row}" data-reel="${r}" data-sym="${sym}"`
+        : `data-sym="${sym}"`;
+          
+      const meta = theme.symbols[sym] ?? { name: sym };
+      const label = meta.jackpot ? meta.name : (meta.name ?? sym);
+          
+      return `
+      <div class="cell" ${attrs}>
+        <div class="symInner">${iconFor(theme, sym)}</div>
+        ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
+      </div>
+`;
 
-        const attrs = isFinal
-          ? `data-row="${row}" data-reel="${r}" data-sym="${sym}"`
-          : `data-sym="${sym}"`;
+    }).join("");
 
-        const meta = theme.symbols[sym] ?? { name: sym };
-
-        return `
-          <div class="cell" ${attrs}>
-            <div class="sym">${meta.name}</div>
-          </div>
-        `;
-      }).join("");
 
       const symH = 60;
       const finalOffset = (finalSyms.length - 3) * symH;

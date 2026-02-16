@@ -543,15 +543,6 @@ button.danger { border-color: rgba(255,107,107,.35); }
 
 .strip { will-change: transform; }
 
-.sym {
-  height: 60px;
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  align-items: center;
-  padding: 0 10px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-}
-
 .symInner {
   width: 36px;
   height: 36px;
@@ -690,14 +681,24 @@ button.danger { border-color: rgba(255,107,107,.35); }
     0 0 18px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
+/* Each visible tile is a fixed 60px row */
 .cell{
-  position: relative;
-  border-radius: 12px;
-  margin: 6px 0;
-  padding: 10px 8px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+  height: 60px;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
 }
+
+/* You can keep .sym, but it should NOT be the sizing container anymore */
+.sym{
+  height: auto;              /* was 60px */
+  display: contents;         /* let .cell be the layout grid */
+  border-bottom: 0;
+  padding: 0;
+}
+
 
 .cell.winCell{
   border-color: var(--accent2);

@@ -5,6 +5,17 @@ export const THEMES = {
   name: "Vegas Gold",
   accent: "#d4af37",
 
+  icons: {
+    W:"⭐",
+    A:"A", K:"K", Q:"Q", J:"J", T:"10",
+    S:"🟢",
+    B:"🎁",
+    C:"🪙",
+    MJ:"🎟️",
+    MR:"💠",
+    MJ2:"👑",
+  },
+
   symbols: {
     W:  { name:"Wild",   payout:{3:60,4:250,5:1200}, wild:true },
     A:  { name:"Ace",    payout:{3:10,4:35,5:140} },
@@ -79,6 +90,7 @@ export const THEMES = {
   "retro-fruit": {
     name: "Retro Fruit",
     accent: "#ff5aa5",
+    showLabels: false,
     symbols: {
       W: { name:"Wild", payout:{3:50,4:220,5:1000}, wild:true },
       A: { name:"Cherry", payout:{3:8,4:25,5:100} },
@@ -93,6 +105,23 @@ export const THEMES = {
       MR:{ name:"MINOR",payout:{}, jackpot:"MINOR" },
       MJ2:{ name:"MAJOR",payout:{}, jackpot:"MAJOR" },
     },
+
+icons: {
+  W:"⭐",
+  A:"🍒",
+  K:"🍋",
+  Q:"🍉",
+  J:"🍊",
+  T:"🍇",
+  S:"🔔",
+  B:"🎰",
+  C:"💰",
+  MJ:"💵",
+  MR:"💳",
+  MJ2:"💎",
+},
+
+
     weights: [
     // Reel 1 (slightly higher features)
     { A:18, K:18, Q:16, J:14, T:14, W:2, S:2, B:1, C:3, MJ:0.10, MR:0.05, MJ2:0.02 },
@@ -132,6 +161,7 @@ export const THEMES = {
     "space-heist": {
     name: "Space Heist",
     accent: "#38bdf8",
+    showLabels: false,
     symbols: {
       W: { name:"Hacker", payout:{3:70,4:300,5:1500}, wild:true },
       A: { name:"Laser", payout:{3:10,4:35,5:140} },
@@ -146,6 +176,23 @@ export const THEMES = {
       MR: { name:"MINOR", payout:{}, jackpot:"MINOR" },
       MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
     },
+
+    icons: {
+  W:"🛸",          // Wild = UFO tech
+  A:"💎",          // Diamond
+  K:"🛰️",          // Satellite
+  Q:"🧬",          // DNA / sci-fi
+  J:"🔫",          // Blaster
+  T:"⚡",          // Energy
+  S:"🌌",          // Scatter = galaxy
+  B:"🕵️",          // Pick bonus = heist
+  C:"💰",          // Coin
+  MJ:"🪙",         // MINI
+  MR:"💠",         // MINOR
+  MJ2:"👑",        // MAJOR
+},
+
+
     weights: [
     // Reel 1 (slightly higher features)
     { A:18, K:18, Q:16, J:14, T:14, W:2, S:2, B:1, C:3, MJ:0.10, MR:0.05, MJ2:0.02 },
@@ -187,6 +234,7 @@ export const THEMES = {
     "dragon-vault": {
     name: "Dragon Vault",
     accent: "#ef4444",
+    showLabels: false,
     symbols: {
       W: { name:"Dragon", payout:{3:80,4:350,5:1800}, wild:true },
       A: { name:"Sword", payout:{3:10,4:35,5:140} },
@@ -201,6 +249,23 @@ export const THEMES = {
       MR: { name:"MINOR", payout:{}, jackpot:"MINOR" },
       MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
     },
+
+icons: {
+  W:"🐉",
+  A:"🧧",
+  K:"🏮",
+  Q:"🀄",
+  J:"🔥",
+  T:"🥇",
+  S:"🎇",
+  B:"🏯",
+  C:"🪙",
+  MJ:"🐲",
+  MR:"💰",
+  MJ2:"👑",
+},
+
+
     weights: [
     // Reel 1 (slightly higher features)
     { A:18, K:18, Q:16, J:14, T:14, W:2, S:2, B:1, C:3, MJ:0.10, MR:0.05, MJ2:0.02 },
@@ -242,6 +307,7 @@ export const THEMES = {
     "tropical-treasure": {
     name: "Tropical Treasure",
     accent: "#22c55e",
+    showLabels: false,
     symbols: {
       W: { name:"Pirate", payout:{3:70,4:300,5:1500}, wild:true },
       A: { name:"Parrot", payout:{3:10,4:35,5:140} },
@@ -256,6 +322,23 @@ export const THEMES = {
       MR: { name:"MINOR", payout:{}, jackpot:"MINOR" },
       MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
     },
+
+    icons: {
+  W:"🦜",
+  A:"🏝️",
+  K:"🗿",
+  Q:"🌺",
+  J:"🥥",
+  T:"🍍",
+  S:"🌊",
+  B:"🗺️",
+  C:"🪙",
+  MJ:"💰",
+  MR:"💎",
+  MJ2:"👑",
+},
+
+
     weights: [
     // Reel 1 (slightly higher features)
     { A:18, K:18, Q:16, J:14, T:14, W:2, S:2, B:1, C:3, MJ:0.10, MR:0.05, MJ2:0.02 },
