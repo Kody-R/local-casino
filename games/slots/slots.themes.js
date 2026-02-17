@@ -61,18 +61,42 @@ export const THEMES = {
   },
 
 paylines: [
-  [2,2,2,2,2], // middle
-  [1,1,1,1,1], // upper-middle
-  [3,3,3,3,3], // lower-middle
-  [0,0,0,0,0], // top
-  [4,4,4,4,4], // bottom
+  // --- 5 Straight Lines ---
+  [2,2,2,2,2], // 1 Middle
+  [1,1,1,1,1], // 2 Upper mid
+  [3,3,3,3,3], // 3 Lower mid
+  [0,0,0,0,0], // 4 Top
+  [4,4,4,4,4], // 5 Bottom
 
-  [0,1,2,3,4], // down diagonal
-  [4,3,2,1,0], // up diagonal
-  [1,2,3,2,1], // shallow V
-  [3,2,1,2,3], // inverted V
-  [0,2,4,2,0], // wide V
+  // --- 4 Diagonals ---
+  [0,1,2,3,4], // 6 Down diagonal
+  [4,3,2,1,0], // 7 Up diagonal
+  [1,2,3,2,1], // 8 Shallow V
+  [3,2,1,2,3], // 9 Inverted V
+
+  // --- 6 Zig Zags ---
+  [0,0,1,0,0], // 10
+  [4,4,3,4,4], // 11
+  [1,1,2,1,1], // 12
+  [3,3,2,3,3], // 13
+  [0,1,1,1,0], // 14
+  [4,3,3,3,4], // 15
+
+  // --- 5 W Shapes ---
+  [0,1,0,1,0], // 16
+  [4,3,4,3,4], // 17
+  [1,2,1,2,1], // 18
+  [3,2,3,2,3], // 19
+  [0,2,4,2,0], // 20 Wide V
+
+  // --- 5 Complex Patterns ---
+  [2,1,0,1,2], // 21
+  [2,3,4,3,2], // 22
+  [1,0,1,0,1], // 23
+  [3,4,3,4,3], // 24
+  [2,0,2,4,2], // 25 Crown
 ],
+
 
 
   bonus: {
@@ -154,18 +178,42 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-  [2,2,2,2,2], // middle
-  [1,1,1,1,1], // upper-middle
-  [3,3,3,3,3], // lower-middle
-  [0,0,0,0,0], // top
-  [4,4,4,4,4], // bottom
+  // --- 5 Straight Lines ---
+  [2,2,2,2,2], // 1 Middle
+  [1,1,1,1,1], // 2 Upper mid
+  [3,3,3,3,3], // 3 Lower mid
+  [0,0,0,0,0], // 4 Top
+  [4,4,4,4,4], // 5 Bottom
 
-  [0,1,2,3,4], // down diagonal
-  [4,3,2,1,0], // up diagonal
-  [1,2,3,2,1], // shallow V
-  [3,2,1,2,3], // inverted V
-  [0,2,4,2,0], // wide V
+  // --- 4 Diagonals ---
+  [0,1,2,3,4], // 6 Down diagonal
+  [4,3,2,1,0], // 7 Up diagonal
+  [1,2,3,2,1], // 8 Shallow V
+  [3,2,1,2,3], // 9 Inverted V
+
+  // --- 6 Zig Zags ---
+  [0,0,1,0,0], // 10
+  [4,4,3,4,4], // 11
+  [1,1,2,1,1], // 12
+  [3,3,2,3,3], // 13
+  [0,1,1,1,0], // 14
+  [4,3,3,3,4], // 15
+
+  // --- 5 W Shapes ---
+  [0,1,0,1,0], // 16
+  [4,3,4,3,4], // 17
+  [1,2,1,2,1], // 18
+  [3,2,3,2,3], // 19
+  [0,2,4,2,0], // 20 Wide V
+
+  // --- 5 Complex Patterns ---
+  [2,1,0,1,2], // 21
+  [2,3,4,3,2], // 22
+  [1,0,1,0,1], // 23
+  [3,4,3,4,3], // 24
+  [2,0,2,4,2], // 25 Crown
 ],
+
 
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 6, 4: 10, 5: 15} },
@@ -234,18 +282,42 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-  [2,2,2,2,2], // middle
-  [1,1,1,1,1], // upper-middle
-  [3,3,3,3,3], // lower-middle
-  [0,0,0,0,0], // top
-  [4,4,4,4,4], // bottom
+  // --- 5 Straight Lines ---
+  [2,2,2,2,2], // 1 Middle
+  [1,1,1,1,1], // 2 Upper mid
+  [3,3,3,3,3], // 3 Lower mid
+  [0,0,0,0,0], // 4 Top
+  [4,4,4,4,4], // 5 Bottom
 
-  [0,1,2,3,4], // down diagonal
-  [4,3,2,1,0], // up diagonal
-  [1,2,3,2,1], // shallow V
-  [3,2,1,2,3], // inverted V
-  [0,2,4,2,0], // wide V
+  // --- 4 Diagonals ---
+  [0,1,2,3,4], // 6 Down diagonal
+  [4,3,2,1,0], // 7 Up diagonal
+  [1,2,3,2,1], // 8 Shallow V
+  [3,2,1,2,3], // 9 Inverted V
+
+  // --- 6 Zig Zags ---
+  [0,0,1,0,0], // 10
+  [4,4,3,4,4], // 11
+  [1,1,2,1,1], // 12
+  [3,3,2,3,3], // 13
+  [0,1,1,1,0], // 14
+  [4,3,3,3,4], // 15
+
+  // --- 5 W Shapes ---
+  [0,1,0,1,0], // 16
+  [4,3,4,3,4], // 17
+  [1,2,1,2,1], // 18
+  [3,2,3,2,3], // 19
+  [0,2,4,2,0], // 20 Wide V
+
+  // --- 5 Complex Patterns ---
+  [2,1,0,1,2], // 21
+  [2,3,4,3,2], // 22
+  [1,0,1,0,1], // 23
+  [3,4,3,4,3], // 24
+  [2,0,2,4,2], // 25 Crown
 ],
+
 
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 10, 4: 15, 5: 25} },
@@ -320,18 +392,42 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-  [2,2,2,2,2], // middle
-  [1,1,1,1,1], // upper-middle
-  [3,3,3,3,3], // lower-middle
-  [0,0,0,0,0], // top
-  [4,4,4,4,4], // bottom
+  // --- 5 Straight Lines ---
+  [2,2,2,2,2], // 1 Middle
+  [1,1,1,1,1], // 2 Upper mid
+  [3,3,3,3,3], // 3 Lower mid
+  [0,0,0,0,0], // 4 Top
+  [4,4,4,4,4], // 5 Bottom
 
-  [0,1,2,3,4], // down diagonal
-  [4,3,2,1,0], // up diagonal
-  [1,2,3,2,1], // shallow V
-  [3,2,1,2,3], // inverted V
-  [0,2,4,2,0], // wide V
+  // --- 4 Diagonals ---
+  [0,1,2,3,4], // 6 Down diagonal
+  [4,3,2,1,0], // 7 Up diagonal
+  [1,2,3,2,1], // 8 Shallow V
+  [3,2,1,2,3], // 9 Inverted V
+
+  // --- 6 Zig Zags ---
+  [0,0,1,0,0], // 10
+  [4,4,3,4,4], // 11
+  [1,1,2,1,1], // 12
+  [3,3,2,3,3], // 13
+  [0,1,1,1,0], // 14
+  [4,3,3,3,4], // 15
+
+  // --- 5 W Shapes ---
+  [0,1,0,1,0], // 16
+  [4,3,4,3,4], // 17
+  [1,2,1,2,1], // 18
+  [3,2,3,2,3], // 19
+  [0,2,4,2,0], // 20 Wide V
+
+  // --- 5 Complex Patterns ---
+  [2,1,0,1,2], // 21
+  [2,3,4,3,2], // 22
+  [1,0,1,0,1], // 23
+  [3,4,3,4,3], // 24
+  [2,0,2,4,2], // 25 Crown
 ],
+
 
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
@@ -352,7 +448,7 @@ icons: {
     accent: "#22c55e",
     showLabels: false,
     grid:{rows:5,cols:5},
-    
+
     symbols: {
       W: { name:"Parrot", payout:{3:70,4:300,5:1500}, wild:true },
       A: { name:"Tree", payout:{3:10,4:35,5:140} },
@@ -406,18 +502,42 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-  [2,2,2,2,2], // middle
-  [1,1,1,1,1], // upper-middle
-  [3,3,3,3,3], // lower-middle
-  [0,0,0,0,0], // top
-  [4,4,4,4,4], // bottom
+  // --- 5 Straight Lines ---
+  [2,2,2,2,2], // 1 Middle
+  [1,1,1,1,1], // 2 Upper mid
+  [3,3,3,3,3], // 3 Lower mid
+  [0,0,0,0,0], // 4 Top
+  [4,4,4,4,4], // 5 Bottom
 
-  [0,1,2,3,4], // down diagonal
-  [4,3,2,1,0], // up diagonal
-  [1,2,3,2,1], // shallow V
-  [3,2,1,2,3], // inverted V
-  [0,2,4,2,0], // wide V
+  // --- 4 Diagonals ---
+  [0,1,2,3,4], // 6 Down diagonal
+  [4,3,2,1,0], // 7 Up diagonal
+  [1,2,3,2,1], // 8 Shallow V
+  [3,2,1,2,3], // 9 Inverted V
+
+  // --- 6 Zig Zags ---
+  [0,0,1,0,0], // 10
+  [4,4,3,4,4], // 11
+  [1,1,2,1,1], // 12
+  [3,3,2,3,3], // 13
+  [0,1,1,1,0], // 14
+  [4,3,3,3,4], // 15
+
+  // --- 5 W Shapes ---
+  [0,1,0,1,0], // 16
+  [4,3,4,3,4], // 17
+  [1,2,1,2,1], // 18
+  [3,2,3,2,3], // 19
+  [0,2,4,2,0], // 20 Wide V
+
+  // --- 5 Complex Patterns ---
+  [2,1,0,1,2], // 21
+  [2,3,4,3,2], // 22
+  [1,0,1,0,1], // 23
+  [3,4,3,4,3], // 24
+  [2,0,2,4,2], // 25 Crown
 ],
+
 
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },

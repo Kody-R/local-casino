@@ -25,7 +25,7 @@ export function mountSlots(mountEl, store) {
     <div class="slotsTop row">
       <label class="muted">Lines
         <select id="sl_lines">
-          ${[1,3,5].map(n => `<option value="${n}">${n}</option>`).join("")}
+          ${[1,3,5,7,10].map(n => `<option value="${n}">${n}</option>`).join("")}
         </select>
       </label>
 
@@ -120,6 +120,7 @@ export function mountSlots(mountEl, store) {
   renderStatic(el.reels, THEMES[el.theme.value]);
   clearHighlights(mountEl);
   renderRules(el, theme);
+  rebuildLinesSelect(el.lines, theme);
 
 
   // refresh meters to the selected theme
@@ -143,6 +144,7 @@ export function mountSlots(mountEl, store) {
   // initial render
   renderStatic(el.reels, THEMES[el.theme.value]);
   renderRules(el, THEMES[el.theme.value]);
+  rebuildLinesSelect(el.lines, THEMES[el.theme.value]);
 
   async function refreshBank() {
     const pid = store.currentPlayerId;
@@ -175,6 +177,7 @@ export function mountSlots(mountEl, store) {
 function renderWinBreakdown(el, theme, res, bet) {
   const lines = bet.linesEnabled;
   const bpl = bet.betPerLine;
+
 
   const parts = [];
   if (res.lineWins.length) parts.push(`${res.lineWins.length} line win(s)`);
@@ -499,6 +502,22 @@ function waitOverlayClose(overlayEl) {
     }, 150);
   });
 }
+
+function rebuildLinesSelect(elLines, theme) {
+  const max = theme.paylines?.length ?? 1;
+  const current = Number(elLines.value || 1);
+
+  elLines.innerHTML = "";
+  for (let i = 1; i <= max; i++) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    elLines.appendChild(opt);
+  }
+
+  elLines.value = String(Math.min(current, max));
+}
+
 
 
 /* ---------- visuals ---------- */
