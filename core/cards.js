@@ -26,27 +26,26 @@ function rankDisplay(r) {
 }
 
 // core/cards.js
+// core/cards.js (replace renderCards with this)
 export function renderCards(el, cards, faceDown=false, opts = {}) {
   const { highlightIdx = null, dimOthers = false } = opts;
 
   el.innerHTML = "";
   for (let i = 0; i < cards.length; i++) {
     const c = cards[i];
-
     const card = document.createElement("div");
 
-    // base class
     let cls = `pokerCard ${faceDown ? "isBack" : ""}`;
 
-    // highlight/dim logic (only when face-up)
     if (!faceDown && highlightIdx instanceof Set) {
       const isHi = highlightIdx.has(i);
       if (isHi) cls += " hi";
       else if (dimOthers) cls += " dim";
     }
 
-    // suit coloring for face-up
-    if (!faceDown) {
+    // JOKER handling
+    const isJoker = !faceDown && (c?.joker === true || c?.r === "JOKER");
+    if (!faceDown && !isJoker) {
       cls += (c.s === "H" || c.s === "D") ? " red" : " black";
     }
 
@@ -56,6 +55,18 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
       card.innerHTML = `
         <div class="backPattern"></div>
         <div class="backCenter">♠♥♦♣</div>
+      `;
+    } else if (isJoker) {
+      card.innerHTML = `
+        <div class="corner tl">
+          <div class="rank">🃏</div>
+          <div class="suit">J</div>
+        </div>
+        <div class="pip">JOKER</div>
+        <div class="corner br">
+          <div class="rank">🃏</div>
+          <div class="suit">J</div>
+        </div>
       `;
     } else {
       const r = c.r === "T" ? "10" : c.r;
@@ -78,6 +89,7 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
     el.appendChild(card);
   }
 }
+
 
 
 export function renderCardBack(el, count = 1) {

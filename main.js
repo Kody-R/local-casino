@@ -36,9 +36,13 @@ async function loadGame(gameKey) {
   } else if (gameKey === "missstud") {
   const mod = await import("./games/missstud/missstud.ui.js");
   mod.mountMissStud(els.gameMount, store);
-  } else {
-      els.gameMount.textContent = "Unknown game.";
-    }
+  } else if (gameKey === "djwild") {
+  const mod = await import("./games/djwild/djwild.ui.js");
+  mod.mountDJWild(els.gameMount, store);
+  }
+  else {
+        els.gameMount.textContent = "Unknown game.";
+      }
 }
 
 async function init() {
