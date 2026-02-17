@@ -30,12 +30,13 @@ async function loadGame(gameKey) {
   } else if (gameKey === "roulette") {
     const mod = await import("./games/roulette/roulette.ui.js");
     mod.mountRoulette(els.gameMount, store);
-  }
-    else if (gameKey === "slots") {
+  } else if (gameKey === "slots") {
     const mod = await import("./games/slots/slots.ui.js");
     mod.mountSlots(els.gameMount, store);
-  }
-  else {
+  } else if (gameKey === "missstud") {
+  const mod = await import("./games/missstud/missstud.ui.js");
+  mod.mountMissStud(els.gameMount, store);
+  } else {
       els.gameMount.textContent = "Unknown game.";
     }
 }
