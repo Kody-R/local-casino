@@ -7,17 +7,19 @@ export function spinSlots(theme, { betPerLine, linesEnabled }) {
   // Compute small feature bias (0..1 range-ish), then apply caps
   const bias = computeBias(totalBet, linesEnabled, biasPolicy);
 
-  // Roll each reel’s 3-symbol window from weights (+bias applied)
-  const reels = Array.from({ length: 5 }, (_, reelIndex) =>
-    rollReelWindow(theme, reelIndex, bias)
-  );
+  const ROWS = theme.grid?.rows ?? 3;  // default old
+  const COLS = theme.grid?.cols ?? 5;
+
 
   // Convert to [row][reel] grid
-  const grid = [
-    reels.map(r => r[0]),
-    reels.map(r => r[1]),
-    reels.map(r => r[2]),
-  ];
+  const reels = Array.from({ length: COLS }, (_, reelIndex) =>
+    rollReelWindow(theme, reelIndex, bias, ROWS)
+  );
+  
+  const grid = Array.from({ length: ROWS }, (_, row) =>
+    reels.map(col => col[row])
+  );
+
 
   // ---- the rest of your existing win logic can remain the same ----
   const activeLines = paylines.slice(0, linesEnabled);
@@ -77,26 +79,23 @@ function computeBias(totalBet, linesEnabled, policy) {
   };
 }
 
-function rollReelWindow(theme, reelIndex, bias) {
+function rollReelWindow(theme, reelIndex, bias, rows) {
   const base = theme.weights[reelIndex];
   const w0 = applyBiasToWeights(base, bias);
 
-  const top = weightedPick(w0);
+  const out = [];
+  let w = { ...w0 };
 
-  // Clamp: avoid duplicate S/B in same reel window (simple realism)
-  const w1 = { ...w0 };
-  if (top === "S") w1.S = 0;
-  if (top === "B") w1.B = 0;
+  for (let i = 0; i < rows; i++) {
+    const sym = weightedPick(w);
+    out.push(sym);
 
-  const mid = weightedPick(w1);
+    // Clamp: avoid multiple scatters/bonuses in same reel window
+    if (sym === "S") w.S = 0;
+    if (sym === "B") w.B = 0;
+  }
 
-  const w2 = { ...w1 };
-  if (mid === "S") w2.S = 0;
-  if (mid === "B") w2.B = 0;
-
-  const bot = weightedPick(w2);
-
-  return [top, mid, bot];
+  return out;
 }
 
 

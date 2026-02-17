@@ -4,6 +4,7 @@ export const THEMES = {
  "vegas-gold": {
   name: "Vegas Gold",
   accent: "#d4af37",
+  grid:{rows:5,cols:5},
 
   icons: {
     W:"⭐",
@@ -59,13 +60,20 @@ export const THEMES = {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
 
-  paylines: [
-    [1,1,1,1,1],
-    [0,0,0,0,0],
-    [2,2,2,2,2],
-    [0,1,2,1,0],
-    [2,1,0,1,2],
-  ],
+paylines: [
+  [2,2,2,2,2], // middle
+  [1,1,1,1,1], // upper-middle
+  [3,3,3,3,3], // lower-middle
+  [0,0,0,0,0], // top
+  [4,4,4,4,4], // bottom
+
+  [0,1,2,3,4], // down diagonal
+  [4,3,2,1,0], // up diagonal
+  [1,2,3,2,1], // shallow V
+  [3,2,1,2,3], // inverted V
+  [0,2,4,2,0], // wide V
+],
+
 
   bonus: {
     freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
@@ -73,7 +81,7 @@ export const THEMES = {
     holdSpin: {
       triggerCoins: 6,
       respins: 3,
-      grid: { rows: 3, cols: 5 },
+      grid: { rows: 5, cols: 5 },
 
       // These are the "table defaults". If you use progressive, those values are paid instead.
       jackpots: { MINI: 50, MINOR: 200, MAJOR: 1000 },
@@ -91,6 +99,8 @@ export const THEMES = {
     name: "Retro Fruit",
     accent: "#ff5aa5",
     showLabels: false,
+    grid:{rows:5,cols:5},
+
     symbols: {
       W: { name:"Wild", payout:{3:50,4:220,5:1000}, wild:true },
       A: { name:"Cherry", payout:{3:8,4:25,5:100} },
@@ -144,15 +154,22 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-      [1,1,1,1,1],
-      [0,0,0,0,0],
-      [2,2,2,2,2],
-      [0,1,2,1,0],
-      [2,1,0,1,2],
-    ],
+  [2,2,2,2,2], // middle
+  [1,1,1,1,1], // upper-middle
+  [3,3,3,3,3], // lower-middle
+  [0,0,0,0,0], // top
+  [4,4,4,4,4], // bottom
+
+  [0,1,2,3,4], // down diagonal
+  [4,3,2,1,0], // up diagonal
+  [1,2,3,2,1], // shallow V
+  [3,2,1,2,3], // inverted V
+  [0,2,4,2,0], // wide V
+],
+
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 6, 4: 10, 5: 15} },
-      holdSpin: { triggerCoins: 6, respins: 3, grid:{rows:3, cols:5}, jackpots:{MINI:40, MINOR:150, MAJOR:800},progressive: {
+      holdSpin: { triggerCoins: 6, respins: 3, grid:{rows:5, cols:5}, jackpots:{MINI:40, MINOR:150, MAJOR:800},progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
           rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 } // % of paid bet
         } }
@@ -162,6 +179,8 @@ icons: {
     name: "Space Heist",
     accent: "#38bdf8",
     showLabels: false,
+    grid:{rows:5,cols:5},
+
     symbols: {
       W: { name:"UFO", payout:{3:70,4:300,5:1500}, wild:true },
       A: { name:"Diamond", payout:{3:10,4:35,5:140} },
@@ -215,14 +234,25 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-      [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2]
-    ],
+  [2,2,2,2,2], // middle
+  [1,1,1,1,1], // upper-middle
+  [3,3,3,3,3], // lower-middle
+  [0,0,0,0,0], // top
+  [4,4,4,4,4], // bottom
+
+  [0,1,2,3,4], // down diagonal
+  [4,3,2,1,0], // up diagonal
+  [1,2,3,2,1], // shallow V
+  [3,2,1,2,3], // inverted V
+  [0,2,4,2,0], // wide V
+],
+
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 10, 4: 15, 5: 25} },
       holdSpin: {
         triggerCoins: 6,
         respins: 3,
-        grid:{rows:3,cols:5},
+        grid:{rows:5,cols:5},
         jackpots:{ MINI:75, MINOR:300, MAJOR:1500 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
@@ -235,6 +265,8 @@ icons: {
     name: "Dragon Vault",
     accent: "#ef4444",
     showLabels: false,
+    grid:{rows:5,cols:5},
+
     symbols: {
       W: { name:"Dragon", payout:{3:80,4:350,5:1800}, wild:true },
       A: { name:"Letter", payout:{3:10,4:35,5:140} },
@@ -288,14 +320,25 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-      [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2]
-    ],
+  [2,2,2,2,2], // middle
+  [1,1,1,1,1], // upper-middle
+  [3,3,3,3,3], // lower-middle
+  [0,0,0,0,0], // top
+  [4,4,4,4,4], // bottom
+
+  [0,1,2,3,4], // down diagonal
+  [4,3,2,1,0], // up diagonal
+  [1,2,3,2,1], // shallow V
+  [3,2,1,2,3], // inverted V
+  [0,2,4,2,0], // wide V
+],
+
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
       holdSpin: {
         triggerCoins: 6,
         respins: 3,
-        grid:{rows:3,cols:5},
+        grid:{rows:5,cols:5},
         jackpots:{ MINI:100, MINOR:400, MAJOR:2000 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
@@ -308,6 +351,8 @@ icons: {
     name: "Tropical Treasure",
     accent: "#22c55e",
     showLabels: false,
+    grid:{rows:5,cols:5},
+    
     symbols: {
       W: { name:"Parrot", payout:{3:70,4:300,5:1500}, wild:true },
       A: { name:"Tree", payout:{3:10,4:35,5:140} },
@@ -361,14 +406,25 @@ icons: {
     betScale: 60,          // higher = slower ramp (more subtle)
   },
     paylines: [
-      [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2]
-    ],
+  [2,2,2,2,2], // middle
+  [1,1,1,1,1], // upper-middle
+  [3,3,3,3,3], // lower-middle
+  [0,0,0,0,0], // top
+  [4,4,4,4,4], // bottom
+
+  [0,1,2,3,4], // down diagonal
+  [4,3,2,1,0], // up diagonal
+  [1,2,3,2,1], // shallow V
+  [3,2,1,2,3], // inverted V
+  [0,2,4,2,0], // wide V
+],
+
     bonus: {
       freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
       holdSpin: {
         triggerCoins: 6,
         respins: 3,
-        grid:{rows:3,cols:5},
+        grid:{rows:5,cols:5},
         jackpots:{ MINI:60, MINOR:250, MAJOR:1200 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },

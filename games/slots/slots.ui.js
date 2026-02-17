@@ -211,7 +211,7 @@ function renderWinBreakdown(el, theme, res, bet) {
 
 function renderRules(el, theme) {
   if (!el?.rules) return;
-  
+
   const scatNeed = theme.bonus?.freeSpins?.scatterNeeded ?? 3;
   const fsAwards = theme.bonus?.freeSpins?.awards ?? {};
   const holdNeed = theme.bonus?.holdSpin?.triggerCoins ?? 6;
@@ -268,14 +268,16 @@ function highlightWins(mountEl, theme, res) {
     }
   }
 
-  // Scatters (anywhere)
-  for (let r=0; r<3; r++) for (let c=0; c<5; c++) {
-    const sym = res.grid[r][c];
-    if (theme.symbols[sym]?.scatter) {
-      const cell = mountEl.querySelector(`.cell[data-row="${r}"][data-reel="${c}"]`);
-      if (cell) cell.classList.add("scatterCell");
-    }
+const ROWS = theme.grid?.rows ?? theme.bonus?.holdSpin?.grid?.rows ?? res.grid.length;
+const COLS = theme.grid?.cols ?? theme.bonus?.holdSpin?.grid?.cols ?? res.grid[0].length;
+
+for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+  const sym = res.grid[r][c];
+  if (theme.symbols[sym]?.scatter) {
+    const cell = mountEl.querySelector(`.cell[data-row="${r}"][data-reel="${c}"]`);
+    if (cell) cell.classList.add("scatterCell");
   }
+}
 }
 
 
@@ -511,30 +513,33 @@ function renderStatic(reels, theme) {
 
 
 function makeStripHTML(symbols, theme, reelIndex = null) {
+  const ROWS = theme.grid?.rows ?? 3;
+
   return symbols.map((sym, idx) => {
     const meta = theme.symbols[sym] ?? { name: sym };
     const label = meta.jackpot ? meta.name : (meta.name ?? sym);
 
-    const isFinalCell = (reelIndex !== null) && (idx >= symbols.length - 3);
-    const row = isFinalCell ? (idx - (symbols.length - 3)) : null;
+    const isFinalCell = (reelIndex !== null) && (idx >= symbols.length - ROWS);
+    const row = isFinalCell ? (idx - (symbols.length - ROWS)) : null;
 
     const attrs = isFinalCell
       ? `data-row="${row}" data-reel="${reelIndex}" data-sym="${sym}"`
       : `data-sym="${sym}"`;
 
     return `
-    <div class="cell" ${attrs}>
-      <div class="symInner">${iconFor(theme, sym)}</div>
-      ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
-    </div>
-`;
-
+      <div class="cell" ${attrs}>
+        <div class="symInner">${iconFor(theme, sym)}</div>
+        ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
+      </div>
+    `;
   }).join("");
 }
 
 
 
 async function animateToGrid(reels, grid, delays, theme) {
+  const ROWS = theme.grid?.rows ?? 3;
+
   const stopPromises = reels.map((reel, r) => new Promise(resolve => {
     setTimeout(() => {
       const strip = reel.querySelector(".strip");
@@ -545,39 +550,37 @@ async function animateToGrid(reels, grid, delays, theme) {
         !theme.symbols[s]?.bonus
       );
 
+      // spin filler
       for (let i = 0; i < 18; i++) {
         filler.push(pool[Math.floor(Math.random() * pool.length)]);
       }
 
-      const finalSyms = filler.concat([
-        grid[0][r],
-        grid[1][r],
-        grid[2][r]
-      ]);
+      // 🔥 dynamically build final column
+      const finalColumn = Array.from({ length: ROWS }, (_, row) => grid[row][r]);
+
+      const finalSyms = filler.concat(finalColumn);
 
       strip.innerHTML = finalSyms.map((sym, idx) => {
-      const isFinal = idx >= finalSyms.length - 3;
-      const row = isFinal ? idx - (finalSyms.length - 3) : null;
-          
-      const attrs = isFinal
-        ? `data-row="${row}" data-reel="${r}" data-sym="${sym}"`
-        : `data-sym="${sym}"`;
-          
-      const meta = theme.symbols[sym] ?? { name: sym };
-      const label = meta.jackpot ? meta.name : (meta.name ?? sym);
-          
-      return `
-      <div class="cell" ${attrs}>
-        <div class="symInner">${iconFor(theme, sym)}</div>
-        ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
-      </div>
-`;
+        const isFinal = idx >= finalSyms.length - ROWS;
+        const row = isFinal ? idx - (finalSyms.length - ROWS) : null;
 
-    }).join("");
+        const attrs = isFinal
+          ? `data-row="${row}" data-reel="${r}" data-sym="${sym}"`
+          : `data-sym="${sym}"`;
 
+        const meta = theme.symbols[sym] ?? { name: sym };
+        const label = meta.jackpot ? meta.name : (meta.name ?? sym);
+
+        return `
+          <div class="cell" ${attrs}>
+            <div class="symInner">${iconFor(theme, sym)}</div>
+            ${theme.showLabels !== false ? `<div class="symName">${label}</div>` : ``}
+          </div>
+        `;
+      }).join("");
 
       const symH = 60;
-      const finalOffset = (finalSyms.length - 3) * symH;
+      const finalOffset = (finalSyms.length - ROWS) * symH;
 
       strip.style.transition = "none";
       strip.style.transform = "translateY(0px)";
@@ -592,6 +595,7 @@ async function animateToGrid(reels, grid, delays, theme) {
 
   await Promise.all(stopPromises);
 }
+
 
 /* ---------- overlays & bonus ---------- */
 
