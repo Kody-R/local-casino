@@ -57,18 +57,25 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
         <div class="backCenter">♠♥♦♣</div>
       `;
     } else if (isJoker) {
-      card.innerHTML = `
-        <div class="corner tl">
-          <div class="rank">🃏</div>
-          <div class="suit">J</div>
-        </div>
-        <div class="pip">JOKER</div>
-        <div class="corner br">
-          <div class="rank">🃏</div>
-          <div class="suit">J</div>
-        </div>
-      `;
-    } else {
+  card.classList.add("joker");
+
+  card.innerHTML = `
+    <div class="corner tl jokerCorner">
+      <div class="rank">J</div>
+      <div class="suit">★</div>
+    </div>
+
+    <div class="jokerCenter">
+      <div class="jokerText">JOKER</div>
+    </div>
+
+    <div class="corner br jokerCorner">
+      <div class="rank">J</div>
+      <div class="suit">★</div>
+    </div>
+  `;
+}
+ else {
       const r = c.r === "T" ? "10" : c.r;
       const suit = SUIT_SYMBOL[c.s];
       card.innerHTML = `

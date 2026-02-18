@@ -1,15 +1,40 @@
 // games/djwild/djwild.eval.js
+// Airtight DJ Wild evaluator via FULL SUBSTITUTION (combinations with repetition).
+// Wilds: all 2's + Joker. Allows 5-of-a-kind.
+// Returns: { key, name, score, isNaturalForTrips }
 
 const SUITS = ["S","H","D","C"];
 const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
-
 const RV = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"T":10,"J":11,"Q":12,"K":13,"A":14 };
+
+// Category strength order (higher is better)
+const CAT = {
+  HIGH_CARD: 1,
+  PAIR: 2,
+  TWO_PAIR: 3,
+  THREE_KIND: 4,
+  STRAIGHT: 5,
+  FLUSH: 6,
+  FULL_HOUSE: 7,
+  FOUR_KIND: 8,
+  STRAIGHT_FLUSH: 9,
+  FIVE_OF_KIND: 10,
+  ROYAL_FLUSH: 11,
+  FIVE_WILDS: 12,
+};
 
 function isJoker(c){ return c?.joker === true || c?.r === "JOKER"; }
 function isDeuce(c){ return c?.r === "2"; }
 function isWild(c){ return isJoker(c) || isDeuce(c); }
+function cardStr(c){ return `${c.r}${c.s}`; }  // e.g. "AS"
+function prettyCard(c){
+  const suit = c.s === "S" ? "♠" : c.s === "H" ? "♥" : c.s === "D" ? "♦" : "♣";
+  const rank = c.r === "T" ? "10" : c.r;
+  return `${rank}${suit}`;
+}
 
-// Five wilds is ONLY the physical {JOKER + four 2s}
+
+// Physical "Five Wilds" is strictly Joker + four 2s
 export function isFiveWildsPhysical(cards){
   if (cards.length !== 5) return false;
   const jok = cards.filter(isJoker).length;
@@ -17,406 +42,222 @@ export function isFiveWildsPhysical(cards){
   return jok === 1 && deu === 4;
 }
 
-function sortDesc(a){ return a.slice().sort((x,y)=>y-x); }
+// Prebuild 52 card-types (rank+suit). Wilds can duplicate any of these.
+const CARD_TYPES = (() => {
+  const out = [];
+  for (const s of SUITS) for (const r of RANKS) out.push({ r, s });
+  return out;
+})();
 
-function makeCounts(vals){
-  const m = new Map();
-  for (const v of vals) m.set(v, (m.get(v)||0)+1);
-  return [...m.entries()].sort((a,b)=> b[1]-a[1] || b[0]-a[0]); // by count then rank
-}
-
-function straightHighFromSet(setVals){
-  // setVals are numbers, unique
-  const s = [...new Set(setVals)].sort((a,b)=>a-b);
-  if (s.length < 5) return null;
-
-  // wheel support: treat Ace as 1
-  const s2 = s.includes(14) ? [1, ...s] : s.slice();
-
-  for (let i=0;i<=s2.length-5;i++){
-    const slice = s2.slice(i,i+5);
-    let ok = true;
-    for (let j=0;j<4;j++) if (slice[j]+1 !== slice[j+1]) { ok=false; break; }
-    if (ok) {
-      const hi = slice[4] === 1 ? 5 : slice[4];
-      return hi;
-    }
+function encodeScore(cat, tiebreakers) {
+  // Cat dominates. Add tiebreakers lexicographically using diminishing weights.
+  // Ensure strictly comparable numeric score.
+  let score = cat * 1e12;
+  let mul = 1e10;
+  for (const v of tiebreakers) {
+    score += v * mul;
+    mul = Math.floor(mul / 100);
   }
-  return null;
-}
-
-function bestStraightWithWild(fixedRanks, wildCount){
-  // fixedRanks: array of RV
-  // We try possible straight highs from A(14) down to 5
-  const fixedSet = new Set(fixedRanks);
-
-  const candidates = [];
-  for (let hi=14; hi>=5; hi--){
-    const seq = (hi===5)
-      ? [14,2,3,4,5] // wheel uses Ace
-      : [hi-4,hi-3,hi-2,hi-1,hi];
-
-    let need=0;
-    const seen = new Set();
-    let valid = true;
-    for (const r of fixedSet){
-      if (!seq.includes(r)) { valid=false; break; }
-      if (seen.has(r)) continue;
-      seen.add(r);
-    }
-    if (!valid) continue;
-
-    // count missing
-    for (const r of seq){
-      if (!fixedSet.has(r)) need++;
-    }
-    if (need <= wildCount) candidates.push(hi);
-  }
-  return candidates.length ? candidates[0] : null;
-}
-
-function bestFlushSuitWithWild(fixedCards, wildCount){
-  // returns suit that can make flush and how many fixed in it
-  const counts = {S:0,H:0,D:0,C:0};
-  for (const c of fixedCards) counts[c.s] = (counts[c.s]||0)+1;
-  // best suit: maximize fixed count, and must be possible: fixed in chosen suit + wildCount = 5
-  let bestSuit=null, bestFixed=-1;
-  for (const s of SUITS){
-    const f = counts[s]||0;
-    if (f + wildCount >= 5 && f > bestFixed){
-      bestFixed=f; bestSuit=s;
-    }
-  }
-  return bestSuit ? { suit: bestSuit, fixedInSuit: bestFixed } : null;
-}
-
-function scoreTuple(base, tiebreakers){
-  // base is category strength, tiebreakers are numbers descending
-  let score = base;
-  let mul = 0.001;
-  for (const v of tiebreakers) { score += v * mul; mul *= 0.001; }
   return score;
 }
 
-export function evalDJWild5(cards){
-  // returns { key, name, score, isNaturalForTrips }
-  // "Natural for trips" means: best Trips+ can be made without using any deuce as wild and no joker used.
-  const physicalFiveWilds = isFiveWildsPhysical(cards);
-
-  const fixed = cards.filter(c => !isWild(c));
-  const wilds = cards.filter(isWild);
-  const w = wilds.length;
-
-  const fixedRanks = fixed.map(c => RV[c.r]);
-  const fixedSuits = fixed.map(c => c.s);
-
-  // Helper: any joker makes Trips non-natural by definition
-  const hasJoker = cards.some(isJoker);
-  const deuces = cards.filter(isDeuce).length;
-
-  // 1) FIVE WILDS (top)
-  if (physicalFiveWilds) {
-    return { key:"FIVE_WILDS", name:"Five Wilds", score: scoreTuple(10,[0]), isNaturalForTrips:false };
-  }
-
-  // 2) ROYAL FLUSH
-  // possible if all fixed are same suit and subset of {10,J,Q,K,A} and no duplicates
-  {
-    const rf = tryRoyalFlush(fixed, w);
-    if (rf) return { key:"ROYAL_FLUSH", name:"Royal Flush", score: scoreTuple(9,[14]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"ROYAL_FLUSH")) };
-  }
-
-  // 3) FIVE OF A KIND
-  {
-    const best = tryNOfKind(fixedRanks, w, 5);
-    if (best) return { key:"FIVE_OF_KIND", name:"Five of a Kind", score: scoreTuple(8,[best.rank]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"FIVE_OF_KIND")) };
-  }
-
-  // 4) STRAIGHT FLUSH
-  {
-    const sf = tryStraightFlush(fixed, w);
-    if (sf) return { key:"STRAIGHT_FLUSH", name:"Straight Flush", score: scoreTuple(7,[sf.high]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"STRAIGHT_FLUSH")) };
-  }
-
-  // 5) FOUR OF A KIND
-  {
-    const best = tryNOfKindWithKicker(fixedRanks, w, 4);
-    if (best) return { key:"FOUR_KIND", name:"Four of a Kind", score: scoreTuple(6,[best.rank,best.kicker]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"FOUR_KIND")) };
-  }
-
-  // 6) FULL HOUSE
-  {
-    const fh = tryFullHouse(fixedRanks, w);
-    if (fh) return { key:"FULL_HOUSE", name:"Full House", score: scoreTuple(5,[fh.trip, fh.pair]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"FULL_HOUSE")) };
-  }
-
-  // 7) FLUSH
-  {
-    const fl = tryFlush(fixed, w);
-    if (fl) return { key:"FLUSH", name:"Flush", score: scoreTuple(4, fl.highs), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"FLUSH")) };
-  }
-
-  // 8) STRAIGHT
-  {
-    const hi = bestStraightWithWild(fixedRanks, w);
-    if (hi) return { key:"STRAIGHT", name:"Straight", score: scoreTuple(3,[hi]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"STRAIGHT")) };
-  }
-
-  // 9) THREE OF A KIND
-  {
-    const tk = tryNOfKindWithKickers(fixedRanks, w, 3);
-    if (tk) return { key:"THREE_KIND", name:"Three of a Kind", score: scoreTuple(2,[tk.rank, ...tk.kickers]), isNaturalForTrips: (!hasJoker && isTripsNaturalPossible(cards,"THREE_KIND")) };
-  }
-
-  // 10+) Below trips (still needed for comparing player vs dealer)
-  {
-    const twoPair = tryTwoPair(fixedRanks, w);
-    if (twoPair) return { key:"TWO_PAIR", name:"Two Pair", score: scoreTuple(1.5,[...twoPair]), isNaturalForTrips:false };
-    const pair = tryPair(fixedRanks, w);
-    if (pair) return { key:"PAIR", name:"Pair", score: scoreTuple(1.2,[...pair]), isNaturalForTrips:false };
-    const highs = bestHighCard(fixedRanks, w);
-    return { key:"HIGH_CARD", name:"High Card", score: scoreTuple(1,[...highs]), isNaturalForTrips:false };
-  }
+function countsByRank(vals) {
+  const m = new Map();
+  for (const v of vals) m.set(v, (m.get(v) || 0) + 1);
+  // sort by (count desc, rank desc)
+  return [...m.entries()].sort((a,b)=> (b[1]-a[1]) || (b[0]-a[0]));
 }
 
-// --- Natural-for-Trips heuristic (matches PDF wording) ---
-// We classify "natural" if: no joker AND treating all deuces as literal 2's still yields Trips+.
-function isTripsNaturalPossible(cards, wantedKey){
-  if (cards.some(isJoker)) return false;
-
-  // Treat deuces as non-wild (fixed rank 2)
-  const fixed = cards.map(c => {
-    if (isDeuce(c)) return { r:"2", s:c.s };
-    if (isJoker(c)) return { r:"JOKER", joker:true }; // already excluded
-    return c;
-  });
-
-  // Evaluate with ONLY joker wild (none here), so effectively no wild at all
-  const noWild = fixed.filter(c => !isJoker(c));
-  const ranks = noWild.map(c => RV[c.r]);
-  const suits = noWild.map(c => c.s);
-
-  // quick check: does literal hand already make Trips+ category?
-  const key = evalNoWildKey(noWild);
-  if (!["THREE_KIND","STRAIGHT","FLUSH","FULL_HOUSE","FOUR_KIND","STRAIGHT_FLUSH","FIVE_OF_KIND","ROYAL_FLUSH","FIVE_WILDS"].includes(key)) {
-    return false;
-  }
-  // If literal hand already qualifies, we'll call it natural.
-  // If you want stricter “natural must match the same ranking as wild-best”, we can enforce key===wantedKey.
-  return true;
+function isFlush(hand) {
+  const s = hand[0].s;
+  return hand.every(c => c.s === s);
 }
 
-function evalNoWildKey(cards){
-  // Basic 5-card evaluation WITHOUT wilds (used only for natural classification)
-  const ranks = cards.map(c=>RV[c.r]).sort((a,b)=>a-b);
-  const uniq = [...new Set(ranks)];
-  const isFlush = cards.every(c=>c.s===cards[0].s);
+function straightHigh(vals) {
+  // vals: ranks numeric, may contain duplicates
+  const uniq = [...new Set(vals)].sort((a,b)=>a-b);
+  if (uniq.length !== 5) return null;
 
-  const isStraight = (() => {
-    if (uniq.length !== 5) return false;
-    // wheel
-    if (uniq.includes(14) && uniq.includes(2) && uniq.includes(3) && uniq.includes(4) && uniq.includes(5)) return true;
-    return uniq[0]+1===uniq[1] && uniq[1]+1===uniq[2] && uniq[2]+1===uniq[3] && uniq[3]+1===uniq[4];
-  })();
+  // wheel A2345
+  const wheel = [2,3,4,5,14];
+  const isWheel = wheel.every(v => uniq.includes(v));
+  if (isWheel) return 5;
 
-  const counts = makeCounts(ranks);
-  const freq = counts.map(x=>x[1]);
-
-  const hasRoyal = isFlush && isStraight && uniq.includes(10) && uniq.includes(11) && uniq.includes(12) && uniq.includes(13) && uniq.includes(14);
-  if (hasRoyal) return "ROYAL_FLUSH";
-  if (isFlush && isStraight) return "STRAIGHT_FLUSH";
-  if (freq[0]===4) return "FOUR_KIND";
-  if (freq[0]===3 && freq[1]===2) return "FULL_HOUSE";
-  if (isFlush) return "FLUSH";
-  if (isStraight) return "STRAIGHT";
-  if (freq[0]===3) return "THREE_KIND";
-  if (freq[0]===2 && freq[1]===2) return "TWO_PAIR";
-  if (freq[0]===2) return "PAIR";
-  return "HIGH_CARD";
+  for (let i=0;i<4;i++) if (uniq[i]+1 !== uniq[i+1]) return null;
+  return uniq[4];
 }
 
-// --- Category builders (wild-aware, no brute-force combinatorics) ---
+function evaluateNoWild5(hand) {
+  // hand: 5 cards, may contain duplicate exact cards due to wild mimic (that's ok)
+  const vals = hand.map(c => RV[c.r]).sort((a,b)=>b-a);
+  const flush = isFlush(hand);
+  const sHi = straightHigh(vals);
 
-function tryRoyalFlush(fixed, w){
-  const rfRanks = new Set([10,11,12,13,14]);
-  if (fixed.length > 5) return null;
+  // rank counts
+  const cnt = countsByRank(vals);
+  const freqs = cnt.map(x=>x[1]); // like [3,2] etc
 
-  // all fixed must share suit
-  if (fixed.length){
-    const s = fixed[0].s;
-    if (!fixed.every(c=>c.s===s)) return null;
-    // ranks must be subset of RF ranks and unique
-    const fr = fixed.map(c=>RV[c.r]);
-    if (new Set(fr).size !== fr.length) return null;
-    if (!fr.every(r=>rfRanks.has(r))) return null;
-    const missing = 5 - fr.length;
-    if (missing <= w) return { suit:s };
-    return null;
-  }
-  // no fixed: wilds can make any suit
-  return (w >= 5) ? { suit:"S" } : { suit:"S" }; // with 5 cards total, if all are wild we'd have been FIVE WILDS already
-}
-
-function tryStraightFlush(fixed, w){
-  // Choose a suit possible for flush; within that suit try best straight.
-  const flushInfo = bestFlushSuitWithWild(fixed, w);
-  if (!flushInfo) return null;
-
-  const suit = flushInfo.suit;
-  const suitedFixed = fixed.filter(c=>c.s===suit).map(c=>RV[c.r]);
-  const otherFixed = fixed.filter(c=>c.s!==suit);
-  if (otherFixed.length) return null; // fixed off-suit cannot be in straight flush
-
-  const hi = bestStraightWithWild(suitedFixed, w);
-  if (!hi) return null;
-  return { high: hi, suit };
-}
-
-function tryFlush(fixed, w){
-  const flushInfo = bestFlushSuitWithWild(fixed, w);
-  if (!flushInfo) return null;
-  const suit = flushInfo.suit;
-
-  // If there are fixed cards off-suit, wilds can't change them -> flush impossible
-  const off = fixed.filter(c=>c.s!==suit);
-  if (off.length) return null;
-
-  // Best flush high cards: use fixed ranks + fill remaining with A,K,Q...
-  const fr = sortDesc(fixed.map(c=>RV[c.r]));
-  const need = 5 - fr.length;
-  const fillers = [14,13,12,11,10,9,8,7,6,5,4,3,2].filter(v => !fr.includes(v)).slice(0,need);
-  const highs = fr.concat(fillers).slice(0,5);
-  return { suit, highs };
-}
-
-function tryNOfKind(fixedRanks, w, n){
-  const counts = new Map();
-  for (const r of fixedRanks) counts.set(r,(counts.get(r)||0)+1);
-
-  let bestRank=null;
-  for (let r=14;r>=2;r--){
-    const c = counts.get(r)||0;
-    if (c + w >= n) { bestRank=r; break; }
-  }
-  if (!bestRank) return null;
-
-  // For five-of-kind, all non-wild fixed must be same rank (otherwise impossible)
-  if (n===5){
-    const distinct = new Set(fixedRanks);
-    if (distinct.size > 1) return null;
-  }
-  return { rank: bestRank };
-}
-
-function tryNOfKindWithKicker(fixedRanks, w, n){
-  const counts = new Map();
-  for (const r of fixedRanks) counts.set(r,(counts.get(r)||0)+1);
-
-  for (let r=14;r>=2;r--){
-    const c = counts.get(r)||0;
-    if (c + w >= n) {
-      // kicker is best remaining rank among fixed not used, else highest possible
-      const remaining = fixedRanks.filter(x=>x!==r);
-      let kicker = remaining.length ? Math.max(...remaining) : 14;
-      if (kicker===r) kicker = 13;
-      return { rank:r, kicker };
+  // ROYAL FLUSH
+  if (flush && sHi === 14) {
+    const need = new Set([10,11,12,13,14]);
+    const uniq = new Set(vals);
+    if (need.size === uniq.size && [...need].every(v=>uniq.has(v))) {
+      return { key:"ROYAL_FLUSH", name:"Royal Flush", cat:CAT.ROYAL_FLUSH, t:[14] };
     }
   }
-  return null;
+
+  // STRAIGHT FLUSH
+  if (flush && sHi) {
+    return { key:"STRAIGHT_FLUSH", name:"Straight Flush", cat:CAT.STRAIGHT_FLUSH, t:[sHi] };
+  }
+
+  // FIVE OF A KIND
+  if (freqs[0] === 5) {
+    return { key:"FIVE_OF_KIND", name:"Five of a Kind", cat:CAT.FIVE_OF_KIND, t:[cnt[0][0]] };
+  }
+
+  // FOUR OF A KIND
+  if (freqs[0] === 4) {
+    const quad = cnt[0][0];
+    const kicker = cnt[1][0];
+    return { key:"FOUR_KIND", name:"Four of a Kind", cat:CAT.FOUR_KIND, t:[quad, kicker] };
+  }
+
+  // FULL HOUSE
+  if (freqs[0] === 3 && freqs[1] === 2) {
+    const trip = cnt[0][0];
+    const pair = cnt[1][0];
+    return { key:"FULL_HOUSE", name:"Full House", cat:CAT.FULL_HOUSE, t:[trip, pair] };
+  }
+
+  // FLUSH
+  if (flush) {
+    // tie by sorted ranks
+    const uniq = vals.slice().sort((a,b)=>b-a);
+    return { key:"FLUSH", name:"Flush", cat:CAT.FLUSH, t:uniq };
+  }
+
+  // STRAIGHT
+  if (sHi) {
+    return { key:"STRAIGHT", name:"Straight", cat:CAT.STRAIGHT, t:[sHi] };
+  }
+
+  // THREE OF A KIND
+  if (freqs[0] === 3) {
+    const trip = cnt[0][0];
+    const kickers = cnt.slice(1).map(x=>x[0]).sort((a,b)=>b-a);
+    return { key:"THREE_KIND", name:"Three of a Kind", cat:CAT.THREE_KIND, t:[trip, ...kickers] };
+  }
+
+  // TWO PAIR
+  if (freqs[0] === 2 && freqs[1] === 2) {
+    const p1 = Math.max(cnt[0][0], cnt[1][0]);
+    const p2 = Math.min(cnt[0][0], cnt[1][0]);
+    const kicker = cnt[2][0];
+    return { key:"TWO_PAIR", name:"Two Pair", cat:CAT.TWO_PAIR, t:[p1, p2, kicker] };
+  }
+
+  // PAIR
+  if (freqs[0] === 2) {
+    const pair = cnt[0][0];
+    const kickers = cnt.slice(1).map(x=>x[0]).sort((a,b)=>b-a);
+    return { key:"PAIR", name:"Pair", cat:CAT.PAIR, t:[pair, ...kickers] };
+  }
+
+  // HIGH CARD
+  return { key:"HIGH_CARD", name:"High Card", cat:CAT.HIGH_CARD, t:vals.slice() };
 }
 
-function tryNOfKindWithKickers(fixedRanks, w, n){
-  const counts = new Map();
-  for (const r of fixedRanks) counts.set(r,(counts.get(r)||0)+1);
+// Generate all multisets (combinations with repetition) of size k from CARD_TYPES indices [0..51].
+// This is C(52+k-1, k). For k=5: 3,819,816 combos (ok for occasional hand eval).
+function* combosWithRepetition(k, startIdx=0, picked=[]) {
+  if (picked.length === k) {
+    yield picked.slice();
+    return;
+  }
+  for (let i=startIdx; i<CARD_TYPES.length; i++) {
+    picked.push(i);
+    yield* combosWithRepetition(k, i, picked);
+    picked.pop();
+  }
+}
 
-  for (let r=14;r>=2;r--){
-    const c = counts.get(r)||0;
-    if (c + w >= n) {
-      const remaining = fixedRanks.filter(x=>x!==r).sort((a,b)=>b-a);
-      // fill with highest kickers not equal to r
-      const kickers = remaining.slice(0, 5-n);
-      while (kickers.length < 5-n) {
-        const cand = 14 - kickers.length;
-        if (cand !== r && !kickers.includes(cand)) kickers.push(cand);
-        else kickers.push(cand-1);
-      }
-      return { rank:r, kickers };
+function bestWithWilds(cards5, treatDeucesWild=true) {
+  const wilds = cards5.filter(c => isJoker(c) || (treatDeucesWild && isDeuce(c)));
+  const fixed = cards5.filter(c => !isJoker(c) && !(treatDeucesWild && isDeuce(c)));
+
+  const k = wilds.length;
+  if (k === 0) {
+    const e = evaluateNoWild5(fixed);
+    e.score = encodeScore(e.cat, e.t);
+    e.bestHand = fixed;
+    e.wildNote = "";
+    return e;
+  }
+
+  let best = null;
+
+  for (const idxs of combosWithRepetition(k)) {
+    const repl = idxs.map(i => CARD_TYPES[i]);
+    const hand = fixed.concat(repl);
+
+    const e = evaluateNoWild5(hand);
+    const score = encodeScore(e.cat, e.t);
+
+    if (!best || score > best.score) {
+      best = { ...e, score, bestHand: hand, repl };
     }
   }
-  return null;
-}
 
-function tryFullHouse(fixedRanks, w){
-  const counts = makeCounts(fixedRanks); // [rank,count] desc
-  // Try best trip rank then best pair rank
-  for (let trip=14; trip>=2; trip--){
-    const cTrip = fixedRanks.filter(r=>r===trip).length;
-    const needTrip = Math.max(0, 3 - cTrip);
-    if (needTrip > w) continue;
-
-    const wLeft = w - needTrip;
-    for (let pair=14; pair>=2; pair--){
-      if (pair===trip) continue;
-      const cPair = fixedRanks.filter(r=>r===pair).length;
-      const needPair = Math.max(0, 2 - cPair);
-      if (needPair <= wLeft) return { trip, pair };
+  // build a user-facing "wild resolved as ..." note
+  let wildNote = "";
+  if (best && k > 0) {
+    const parts = [];
+    for (let i=0; i<k; i++){
+      const orig = wilds[i];
+      const as = best.repl[i];
+      const origLabel = isJoker(orig) ? "Joker" : prettyCard(orig);
+      parts.push(`${origLabel} → ${prettyCard(as)}`);
     }
+    wildNote = parts.length ? `Wilds: ${parts.join(", ")}` : "";
   }
-  return null;
+
+  best.wildNote = wildNote;
+  return best;
 }
 
-function tryTwoPair(fixedRanks, w){
-  // Build best two pairs possible, then kicker
-  const counts = makeCounts(fixedRanks); // [rank,count]
-  const have = new Map(counts.map(([r,c])=>[r,c]));
 
-  const pairs = [];
-  for (let r=14;r>=2;r--){
-    const c = have.get(r)||0;
-    if (c>=2) pairs.push(r);
-    else if (c===1 && w>=1) pairs.push(r);
-    else if (c===0 && w>=2) pairs.push(r);
-    if (pairs.length===2) break;
+export function evalDJWild5(cards) {
+  // Physical Five Wilds overrides everything
+  if (isFiveWildsPhysical(cards)) {
+    return {
+      key: "FIVE_WILDS",
+      name: "Five Wilds",
+      score: encodeScore(CAT.FIVE_WILDS, [0]),
+      isNaturalForTrips: false,
+    };
   }
-  if (pairs.length<2) return null;
 
-  // kicker best remaining
-  const usedPairs = new Set(pairs);
-  let kicker = null;
-  for (let r=14;r>=2;r--){
-    if (usedPairs.has(r)) continue;
-    const c = have.get(r)||0;
-    if (c>=1 || w>=1) { kicker=r; break; }
-  }
-  if (!kicker) kicker = 14;
-  return [pairs[0], pairs[1], kicker];
-}
+  const hasJ = cards.some(isJoker);
 
-function tryPair(fixedRanks, w){
-  const have = new Map(makeCounts(fixedRanks).map(([r,c])=>[r,c]));
-  let pair=null;
-  for (let r=14;r>=2;r--){
-    const c = have.get(r)||0;
-    if (c>=2 || (c===1 && w>=1) || (c===0 && w>=2)) { pair=r; break; }
-  }
-  if (!pair) return null;
+  // Best hand using DJ rules (deuces + joker wild)
+  const bestWild = bestWithWilds(cards, true);
 
-  const kickers = [];
-  for (let r=14;r>=2;r--){
-    if (r===pair) continue;
-    const c = have.get(r)||0;
-    if (c>=1 || w>=1) kickers.push(r);
-    if (kickers.length===3) break;
+  // Natural-for-trips (airtight interpretation):
+  // If no joker, compute best where deuces are NOT wild. If it matches bestWild exactly, call it natural.
+  let isNaturalForTrips = false;
+  if (!hasJ) {
+    const bestNoDeuceWild = bestWithWilds(cards, false);
+    isNaturalForTrips = (bestNoDeuceWild.score === bestWild.score);
   }
-  while (kickers.length<3) kickers.push(14-kickers.length);
-  return [pair, ...kickers];
-}
 
-function bestHighCard(fixedRanks, w){
-  const set = new Set(fixedRanks);
-  const out = fixedRanks.slice().sort((a,b)=>b-a);
-  for (let r=14;r>=2 && out.length<5;r--){
-    if (!set.has(r)) out.push(r);
-  }
-  return out.slice(0,5);
+  return {
+  key: bestWild.key,
+  name: bestWild.name,
+  score: bestWild.score,
+  isNaturalForTrips,
+  wildNote: bestWild.wildNote || "",
+  bestHand: bestWild.bestHand || null,
+};
+
 }

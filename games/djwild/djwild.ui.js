@@ -230,6 +230,10 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
       // Evaluate hands
       const pEval = evalDJWild5(state.player);
       const dEval = evalDJWild5(state.dealer);
+      const wildInfo =
+      `${pEval.wildNote ? ` | ${pEval.wildNote}` : ""}` +
+      `${dEval.wildNote ? ` | Dealer ${dEval.wildNote}` : ""}`;
+
       const cmp = compareHands(pEval, dEval);
 
       // Side bets settle first (independent)
@@ -254,7 +258,7 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
         el.result.textContent = "PLAYER WINS";
         el.detail.textContent =
           `Player: ${pEval.name} vs Dealer: ${dEval.name}. ` +
-          `Blind ${blindPays > 0 ? `${blindPays}:1` : "PUSH"}. ${tripsRes.msg}.`;
+          `Blind ${blindPays > 0 ? `${blindPays}:1` : "PUSH"}. ${tripsRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
 
       } else if (cmp === 0) {
         // Push: return Ante, Blind, Play
@@ -266,7 +270,7 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
         if (state.badbeat > 0) await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
 
         el.result.textContent = "PUSH";
-        el.detail.textContent = `Player: ${pEval.name} ties Dealer: ${dEval.name}. ${tripsRes.msg}.`;
+        el.detail.textContent = `Player: ${pEval.name} ties Dealer: ${dEval.name}. ${tripsRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
 
       } else {
         // Dealer wins: Ante, Blind, Play lose
@@ -280,7 +284,7 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
         el.result.textContent = "DEALER WINS";
         el.detail.textContent =
           `Player: ${pEval.name} loses to Dealer: ${dEval.name}. ` +
-          `${tripsRes.msg}. ${bbRes.msg}.`;
+          `${tripsRes.msg}. ${bbRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
       }
 
       await store.closeRound(round.id);
