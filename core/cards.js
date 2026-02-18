@@ -9,6 +9,40 @@ export function makeDeck() {
   return deck;
 }
 
+export function freshShoe(decks = 6, { includeJoker = false } = {}) {
+  const shoe = [];
+  for (let i = 0; i < decks; i++) shoe.push(...makeDeck());
+  if (includeJoker) shoe.push({ joker: true, r: "JOKER", s: null });
+  return shuffle(shoe);
+}
+
+export function draw(shoe) {
+  if (!shoe || shoe.length === 0) throw new Error("Shoe is empty.");
+  return shoe.pop();
+}
+
+export function makeDeckPaiGow() {
+  const deck = [];
+
+  for (const r of RANKS) {
+    for (const s of SUITS) {
+      deck.push({ r, s });
+    }
+  }
+
+  // Pai Gow Joker
+  deck.push({
+    joker: true,
+    r: "JOKER",
+    s: null,
+    paiGowJoker: true
+  });
+
+  return deck;
+}
+
+
+
 export function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

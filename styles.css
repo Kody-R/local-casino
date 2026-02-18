@@ -815,3 +815,68 @@ select option:disabled{
   opacity: 0.85;
 }
 
+/* Baccarat roads */
+.roadGrid {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.roadCell {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,0,0,0.12);
+  position: relative;
+}
+
+.roadP { background: rgba(46, 204, 113, 0.75); }
+.roadB { background: rgba(231, 76, 60, 0.75); }
+.roadT { background: rgba(52, 152, 219, 0.75); }
+
+.tieMark {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+/* Pai Gow selection styling */
+.pokerCard.hi {
+  outline: 2px solid rgba(46, 204, 113, 0.95);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.25);
+}
+.pokerCard.dim {
+  outline: 2px solid rgba(52, 152, 219, 0.95);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.20);
+  opacity: 1; /* prevent old dim styles from hiding */
+}
+
+/* Pai Gow dealer split animation overlay */
+.pgSplitWrap { position: relative; }
+
+.pgSplitOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 5;
+}
+
+.pgGhostCard {
+  position: absolute;
+  will-change: transform, opacity;
+  transform: translate3d(0,0,0);
+}
+
+/* subtle "lift" look during animation */
+.pgGhostCard .pokerCard {
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}

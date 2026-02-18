@@ -39,8 +39,13 @@ async function loadGame(gameKey) {
   } else if (gameKey === "djwild") {
   const mod = await import("./games/djwild/djwild.ui.js");
   mod.mountDJWild(els.gameMount, store);
-  }
-  else {
+  } else if (gameKey === "baccarat") {
+  const mod = await import("./games/baccarat/baccarat.ui.js");
+  mod.mountBaccarat(els.gameMount, store);
+  }else if (gameKey === "paigow") {
+  const mod = await import("./games/paigow/paigow.ui.js");
+  mod.mountPaiGow(els.gameMount, store);
+  } else {
         els.gameMount.textContent = "Unknown game.";
       }
 }
