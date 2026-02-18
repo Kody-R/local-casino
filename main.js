@@ -42,9 +42,12 @@ async function loadGame(gameKey) {
   } else if (gameKey === "baccarat") {
   const mod = await import("./games/baccarat/baccarat.ui.js");
   mod.mountBaccarat(els.gameMount, store);
-  }else if (gameKey === "paigow") {
+  } else if (gameKey === "paigow") {
   const mod = await import("./games/paigow/paigow.ui.js");
   mod.mountPaiGow(els.gameMount, store);
+  }else if (gameKey === "horserace") {
+  const mod = await import("./games/horserace/horserace.ui.js");
+  mod.mountHorseRacing(els.gameMount, store); 
   } else {
         els.gameMount.textContent = "Unknown game.";
       }

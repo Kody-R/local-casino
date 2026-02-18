@@ -880,3 +880,61 @@ select option:disabled{
 .pgGhostCard .pokerCard {
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 }
+
+.hr-wrap { padding: 12px; }
+.hr-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.hr-msg { margin-top: 6px; opacity: 0.9; }
+.hr-board { margin-top: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; }
+.hr-board-title { font-weight: 700; margin-bottom: 8px; }
+.hr-board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.hr-card { padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+.hr-name { font-size: 14px; }
+.hr-odds { font-size: 18px; font-weight: 800; margin-top: 4px; }
+.hr-results { margin-top: 10px; opacity: 0.9; }
+
+.hr-track {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.hr-track-inner { display: grid; gap: 10px; }
+
+.hr-lane { display: grid; gap: 6px; }
+
+.hr-lane-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.hr-lane-run {
+  position: relative;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.hr-horse {
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  font-size: 22px;
+  will-change: transform;
+  transition: none;
+}
+
+.hr-finish {
+  position: absolute;
+  right: 8px;
+  top: 4px;
+  font-size: 20px;
+  opacity: 0.95;
+}
+
+.hr-winner {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.9));
+}
