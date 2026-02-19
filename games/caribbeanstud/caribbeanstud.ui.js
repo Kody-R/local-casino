@@ -70,20 +70,26 @@ export function mountCaribbeanStud(rootEl, store) {
   }
 
 function renderDealer(cards, { hideHole = true } = {}) {
-  if (hideHole) {
-    // Show 1 up + 4 down (common Caribbean Stud UX)
-    const up = cards.slice(0, 1);
-    renderCards(dealerEl, up, false);
+  dealerEl.innerHTML = "";
 
-    // append 4 backs
+  const row = document.createElement("div");
+  row.className = "cs-cards";
+  dealerEl.appendChild(row);
+
+  if (hideHole) {
+    const up = document.createElement("div");
+    row.appendChild(up);
+    renderCards(up, cards.slice(0, 1), false);
+
     const backs = document.createElement("div");
     backs.className = "cs-backs";
-    dealerEl.appendChild(backs);
+    row.appendChild(backs);
     renderCardBack(backs, 4);
   } else {
-    renderCards(dealerEl, cards, false);
+    renderCards(row, cards, false);
   }
 }
+
 
 
   function setDecisionEnabled(on) {

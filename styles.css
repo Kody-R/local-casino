@@ -947,7 +947,29 @@ select option:disabled{
 .cs-table { margin-top: 12px; display:grid; gap: 12px; }
 .cs-area { padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.04); }
 .cs-title { font-weight: 800; margin-bottom: 8px; }
-.cs-cards { display:flex; gap: 8px; flex-wrap: wrap; }
+/* Dealer + player card rows should be horizontal like a poker hand */
+.cs-cards {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap; /* keep in one row */
+}
+
+/* The container you append for the facedown cards */
+.cs-backs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Safety: cards.js often emits .pokerCard; keep them from stretching weirdly */
+.cs-cards .pokerCard,
+.cs-backs .pokerCard {
+  flex: 0 0 auto;
+}
+
 .cs-card { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.18); font-family: ui-monospace, monospace; }
 .cs-card.is-down { opacity: 0.85; }
 .cs-actions { display:flex; gap: 10px; }
