@@ -45,10 +45,16 @@ async function loadGame(gameKey) {
   } else if (gameKey === "paigow") {
   const mod = await import("./games/paigow/paigow.ui.js");
   mod.mountPaiGow(els.gameMount, store);
-  }else if (gameKey === "horserace") {
+  } else if (gameKey === "horserace") {
   const mod = await import("./games/horserace/horserace.ui.js");
   mod.mountHorseRacing(els.gameMount, store); 
-  } else {
+  } else if (gameKey === "caribbeanstud") {
+  const mod = await import("./games/caribbeanstud/caribbeanstud.ui.js");
+  mod.mountCaribbeanStud(els.gameMount, store);
+ } else if (gameKey === "spanish21") {
+  const mod = await import("./games/spanish21/spanish21.ui.js");
+  mod.mountSpanish21(els.gameMount, store); }
+  else {
         els.gameMount.textContent = "Unknown game.";
       }
 }

@@ -938,3 +938,39 @@ select option:disabled{
 .hr-winner {
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.9));
 }
+
+.cs-wrap { padding: 12px; }
+.cs-top { display:flex; justify-content:space-between; align-items:flex-end; gap: 12px; flex-wrap: wrap; }
+.cs-controls { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+.cs-msg { opacity: 0.9; }
+
+.cs-table { margin-top: 12px; display:grid; gap: 12px; }
+.cs-area { padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.04); }
+.cs-title { font-weight: 800; margin-bottom: 8px; }
+.cs-cards { display:flex; gap: 8px; flex-wrap: wrap; }
+.cs-card { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.18); font-family: ui-monospace, monospace; }
+.cs-card.is-down { opacity: 0.85; }
+.cs-actions { display:flex; gap: 10px; }
+.cs-result { padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.10); }
+.cs-info { margin-top: 8px; opacity: 0.9; }
+
+.s21-wrap { padding: 12px; display: grid; gap: 12px; }
+.s21-top { display:flex; justify-content:space-between; align-items:flex-end; gap: 12px; flex-wrap: wrap; }
+.s21-controls { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+.s21-msg { opacity: 0.9; }
+
+.s21-area { padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.04); }
+.s21-title { font-weight: 800; margin-bottom: 8px; }
+
+.s21-cards { display:flex; gap: 8px; flex-wrap: wrap; }
+.s21-card { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.18); font-family: ui-monospace, monospace; }
+
+.s21-hands { display:grid; gap: 10px; }
+.s21-hand { padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.12); }
+.s21-hand.is-active { outline: 2px solid rgba(255,255,255,0.35); }
+
+.s21-hand-head { display:flex; justify-content:space-between; gap: 10px; margin-bottom: 8px; font-size: 13px; opacity: 0.95; }
+
+.s21-actions { display:flex; gap: 10px; flex-wrap: wrap; }
+.s21-result { padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.18); }
+.s21-info { margin-top: 8px; opacity: 0.9; }
