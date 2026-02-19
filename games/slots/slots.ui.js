@@ -406,20 +406,24 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
       // handle triggers
       // handle triggers (support retrigger during free spins)
       if (res.triggers.freeSpins) {
-        const add = res.triggers.freeSpinsAward || 0;
-        if (add > 0) {
-          freeSpinsLeft += add;
-          freeSpinTotal += add;
-      
-          // Optional: show a retrigger popup only if not already showing another overlay
-          const overlayOpen = !el.overlay.classList.contains("hidden");
-          if (!overlayOpen) {
-            showOverlay(el, "Free Spins Retrigger!", `+<b>${add}</b> free spins added.`, [
-              { label: "OK", cls: "ok", onClick: () => hideOverlay(el) }
-            ]);
-          }
-        }
-      }
+  const add = res.triggers.freeSpinsAward || 0;
+  if (add > 0) {
+    if (freeSpinsLeft === 0) {
+      freeSpinsLeft = add;
+      freeSpinTotal = add;
+    } else {
+      freeSpinsLeft += add;
+      freeSpinTotal += add;
+    }
+
+    const overlayOpen = !el.overlay.classList.contains("hidden");
+    if (!overlayOpen) {
+      showOverlay(el, "Free Spins Retrigger!", `+<b>${add}</b> free spins added.`, [
+        { label: "OK", cls: "ok", onClick: () => hideOverlay(el) }
+      ]);
+    }
+  }
+}
 
 
       if (res.triggers.pickBonus) {
@@ -439,10 +443,14 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
           const overlayOpen = !el.overlay.classList.contains("hidden");
           if (!overlayOpen) setTimeout(() => el.spin.click(), 650);
         } else {
-          showOverlay(el, "Free Spins Complete", "Back to paid spins.", [
-            { label:"OK", cls:"ok", onClick: () => hideOverlay(el) }
-          ]);
-        }
+        // ✅ reset session state so the next (non-consecutive) feature starts clean
+        freeSpinTotal = 0;
+        lastBetSnapshot = null;
+              
+        showOverlay(el, "Free Spins Complete", "Back to paid spins.", [
+          { label:"OK", cls:"ok", onClick: () => hideOverlay(el) }
+        ]);
+      }
       }
 
       renderCoinMeter(el, coinMeter, meterCfg.threshold);
