@@ -483,8 +483,12 @@ async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid, betMult = 
       for (let c=0;c<hs.cols;c++) {
         const v = hs.board[r][c];
         const cls = v ? (v.kind === "JACKPOT" ? "hsJackpot" : "hsCoin") : "hsEmpty";
-        const text = v ? (v.kind === "JACKPOT" ? v.label : v.label) : "";
-        cells.push(`<div class="hsCell ${cls}">${text}</div>`);
+        const text = v
+        ? (v.kind === "JACKPOT"
+            ? v.label
+            : Math.round((v.value ?? 0) * betMult))
+        : "";
+              cells.push(`<div class="hsCell ${cls}">${text}</div>`);
       }
     }
 
@@ -514,13 +518,12 @@ async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid, betMult = 
     const v = hs.board[r][c];
     if (!v) continue;
   
-    if (v.kind === "JACKPOT" && jp) {
-      // pay current progressive
-      award += Math.round((jp[v.label] ?? 0) * betMult);
-      hit[v.label] = true;
-    } else {
-      award += v.value;
-    }
+   if (v.kind === "JACKPOT" && jp) {
+    award += Math.round((jp[v.label] ?? 0) * betMult);
+    hit[v.label] = true;
+  } else {
+    award += Math.round((v.value ?? 0) * betMult);
+  }
   }
 
   if (jp && progCfg) {
