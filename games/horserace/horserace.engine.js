@@ -1,42 +1,46 @@
 // horserace.engine.js
-export function makeRace({ horseCount = 8, takeout = 0.15, rng = Math.random } = {}) {
+export function makeRace({ horseCount = 8, takeout = 0.15, rng = Math.random, durationMs = 8000 } = {}) {
   if (![4, 6, 8].includes(horseCount)) horseCount = 8;
 
-  // Wider base range for larger fields (more separation)
-  const ranges = {
-    4: [0.70, 0.95],
-    6: [0.62, 0.94],
-    8: [0.55, 0.93],
-  };
-  const [minB, maxB] = ranges[horseCount];
+  // Volatility controls how "spread out" the odds feel.
+  // Smaller fields tend to have a shorter-priced favorite.
+  const sigmaByField = { 4: 0.65, 6: 0.85, 8: 1.00 };
+  const sigma = sigmaByField[horseCount];
 
+  // Common fractional odds "to-1" ladder (you can tweak this list)
+  const ladders = {
+    4: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15],
+    6: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20],
+    8: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30],
+  };
+  const ladder = ladders[horseCount];
+
+  // Generate lognormal-ish strengths -> probabilities
   const horses = Array.from({ length: horseCount }, (_, i) => {
-    const base = minB + rng() * (maxB - minB);
-    return { id: `H${i + 1}`, name: defaultHorseName(i), base };
+    const z = (rng() * 2 - 1) * sigma;          // [-sigma, +sigma]
+    const strength = Math.exp(z);              // lognormal-ish
+    return { id: `H${i + 1}`, name: defaultHorseName(i), strength };
   });
 
-  // Convert bases to probabilities
-  const sum = horses.reduce((a, h) => a + h.base, 0);
-  horses.forEach(h => (h.p = h.base / sum));
+  const sum = horses.reduce((a, h) => a + h.strength, 0);
+  horses.forEach(h => (h.p = h.strength / sum));
 
-  // Convert p -> decimal odds, then adjust by field size
-  // Bigger field: slightly longer odds on average
-  const fieldMultiplier = { 4: 0.92, 6: 1.00, 8: 1.08 }[horseCount];
-
+  // Convert probability -> fair fractional odds: (1/p) - 1, then quantize to a ladder
   horses.forEach(h => {
-    const raw = (1 / h.p) * fieldMultiplier;
-
-    // Clamp to keep things reasonable
-    h.odds = round2(clamp(raw, 1.2, 20));
+    const fairFrac = (1 / h.p) - 1;              // profit per 1
+    const frac = quantizeToLadder(fairFrac, ladder);
+    h.frac = frac;                               // e.g., 10 means "10-1"
+    h.dec = frac + 1;                            // decimal return multiplier incl stake
+    h.oddsStr = `${frac}-1`;
   });
 
   // Pick winner by weighted probability
   const winner = weightedPick(horses, rng);
 
-  // For UI: produce finish order (winner first, rest randomized weighted)
+  // Finish order: winner first; rest weighted
   const finishOrder = [winner, ...weightedOrder(horses.filter(x => x.id !== winner.id), rng)];
 
-  return { horseCount, horses, winnerId: winner.id, finishOrder, takeout };
+  return { horseCount, horses, winnerId: winner.id, finishOrder, takeout, durationMs };
 }
 
 export function settleWinBet({ horseId, amount }, race) {
@@ -46,9 +50,9 @@ export function settleWinBet({ horseId, amount }, race) {
   const won = horseId === race.winnerId;
   if (!won) return { result: "lose", payout: 0, net: -amount };
 
-  // Payout includes returning stake (typical casino display)
-  const payout = Math.floor(amount * horse.odds * (1 - race.takeout));
-  return { result: "win", payout, net: payout - amount, odds: horse.odds };
+  // Return includes stake, reduced by takeout (simple "house cut" model)
+  const payout = Math.floor(amount * horse.dec * (1 - race.takeout));
+  return { result: "win", payout, net: payout - amount, oddsStr: horse.oddsStr, dec: horse.dec };
 }
 
 // ---------- helpers ----------
@@ -69,11 +73,25 @@ function weightedOrder(items, rng) {
     const picked = weightedPick(pool, rng);
     out.push(picked);
     pool.splice(pool.findIndex(x => x.id === picked.id), 1);
-    // re-normalize p for remaining pool
     const sum = pool.reduce((a, x) => a + x.p, 0);
     if (sum > 0) pool.forEach(x => (x.p = x.p / sum));
   }
   return out;
+}
+
+function quantizeToLadder(x, ladder) {
+  // Clamp to ladder range then choose nearest step
+  const min = ladder[0];
+  const max = ladder[ladder.length - 1];
+  const v = clamp(x, min, max);
+
+  let best = ladder[0];
+  let bestD = Math.abs(v - best);
+  for (const step of ladder) {
+    const d = Math.abs(v - step);
+    if (d < bestD) { bestD = d; best = step; }
+  }
+  return best;
 }
 
 function defaultHorseName(i) {
@@ -83,4 +101,4 @@ function defaultHorseName(i) {
 }
 
 function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-function round2(x) { return Math.round(x * 100) / 100; }
+

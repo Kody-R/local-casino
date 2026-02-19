@@ -13,6 +13,10 @@ export function mountHorseRacing(rootEl, store) {
           </select>
         </label>
 
+        <label>Race Duration (sec):
+         <input id="raceDur" type="number" min="4" max="30" value="8" />
+        </label>
+
         <label>Pick Winner:
           <select id="horsePick"></select>
         </label>
@@ -42,38 +46,43 @@ export function mountHorseRacing(rootEl, store) {
   const boardEl = rootEl.querySelector("#board");
   const trackEl = rootEl.querySelector("#track");
   const resultsEl = rootEl.querySelector("#results");
+  const raceDurEl = rootEl.querySelector("#raceDur");
+
 
   let race = null;
 
-  function renderRace() {
-    const horseCount = Number(fieldSizeEl.value);
-    race = makeRace({ horseCount });
+function renderRace() {
+  const horseCount = Number(fieldSizeEl.value);
+  const durationMs = Math.max(4000, Math.min(30000, Number(raceDurEl.value || 8) * 1000));
 
-    horsePickEl.innerHTML = race.horses
-      .map(h => `<option value="${h.id}">${h.name} (${h.odds}x)</option>`)
-      .join("");
+  race = makeRace({ horseCount, durationMs });
 
-    boardEl.innerHTML = `
-      <div class="hr-board-title">Odds Board (${race.horseCount} horses)</div>
-      <div class="hr-board-grid">
-        ${race.horses
-          .slice()
-          .sort((a, b) => a.odds - b.odds)
-          .map(h => `
-            <div class="hr-card">
-              <div class="hr-name">${h.name}</div>
-              <div class="hr-odds">${h.odds}x</div>
-            </div>
-          `)
-          .join("")}
-      </div>
-    `;
+  horsePickEl.innerHTML = race.horses
+    .map(h => `<option value="${h.id}">${h.name} (${h.oddsStr})</option>`)
+    .join("");
 
-    renderTrack(trackEl, race);
+  boardEl.innerHTML = `
+    <div class="hr-board-title">Odds Board (${race.horseCount} horses)</div>
+    <div class="hr-board-grid">
+      ${race.horses
+        .slice()
+        .sort((a, b) => a.frac - b.frac)  // smaller "to-1" is favorite
+        .map(h => `
+          <div class="hr-card">
+            <div class="hr-name">${h.name}</div>
+            <div class="hr-odds">${h.oddsStr}</div>
+          </div>
+        `)
+        .join("")}
+    </div>
+  `;
 
-    resultsEl.textContent = "";
-    msgEl.textContent = "Pick a winner, set your bet, and run the race.";
-  }
+  renderTrack(trackEl, race);
+
+  resultsEl.textContent = "";
+  msgEl.textContent = "Pick a winner, set your bet, and run the race.";
+}
+
 
   async function runRace() {
     const amount = Math.floor(Number(betAmtEl.value || 0));
@@ -94,11 +103,12 @@ export function mountHorseRacing(rootEl, store) {
     const pickedHorseId = horsePickEl.value;
 
     // Animate ~8 seconds; guaranteed finish order = race.finishOrder
-    await animateRace(trackEl, race, { durationMs: 5000 });
+    await animateRace(trackEl, race, { durationMs: race.durationMs });
+
 
     const winner = race.finishOrder[0];
     highlightWinner(trackEl, race.winnerId);
-    msgEl.textContent = `🏁 Winner: ${winner.name} (${winner.odds}x)`;
+    msgEl.textContent = `🏁 Winner: ${winner.name} (${winner.oddsStr})`;
 
 
     const finish = race.finishOrder.map((h, i) => `${i + 1}. ${h.name}`).join("  •  ");
@@ -106,10 +116,11 @@ export function mountHorseRacing(rootEl, store) {
 
     if (settled.result === "win") {
       store.balance += settled.payout;
-      msgEl.textContent = `WIN! Payout $${settled.payout} (at ${settled.odds}x)`;
+      msgEl.textContent = `WIN! Payout $${settled.payout} (at ${settled.oddsStr})`;
     } else {
       msgEl.textContent = `Lost. Winner was: ${race.finishOrder[0].name}`;
     }
+
     store.render?.();
 
     resultsEl.textContent = `Finish: ${finish}`;
@@ -125,6 +136,7 @@ export function mountHorseRacing(rootEl, store) {
 
   }
 
+  raceDurEl.addEventListener("change", renderRace);
   fieldSizeEl.addEventListener("change", renderRace);
   btnNew.addEventListener("click", renderRace);
   btnRun.addEventListener("click", runRace);
@@ -162,72 +174,73 @@ function highlightWinner(trackEl, winnerId) {
  * Implementation: each horse accumulates progress with random “stride” noise + rank bias,
  * then we normalize at the end so 1st > 2nd > ... exactly.
  */
-function animateRace(trackEl, race, { durationMs = 5000 } = {}) {
+function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
   const horses = Array.from(trackEl.querySelectorAll(".hr-horse"));
   const byId = Object.fromEntries(horses.map(el => [el.dataset.id, el]));
 
-  // Map finish rank (0 = winner)
   const rank = {};
   race.finishOrder.forEach((h, i) => (rank[h.id] = i));
 
-  // Determine track width in pixels to move across
   const laneRun = trackEl.querySelector(".hr-lane-run");
   const finishEl = trackEl.querySelector(".hr-finish");
-  const laneWidth = laneRun.getBoundingClientRect().width;
   const finishX = finishEl.getBoundingClientRect().left - laneRun.getBoundingClientRect().left;
-  const maxX = Math.max(0, finishX - 28); // keep emoji from overlapping flag
+  const maxX = Math.max(0, finishX - 28);
 
-  // Progress state (0..1-ish)
   const prog = {};
   horses.forEach(el => (prog[el.dataset.id] = 0));
 
-  // Bias: winner gets a small edge; last gets slight penalty.
-  // Keep it subtle so it looks like “a race,” not rails.
   const n = race.horses.length;
   const biasOf = (id) => {
     const r = rank[id] ?? (n - 1);
-    const t = (n - 1 - r) / (n - 1); // winner ~1, last ~0
-    return 0.010 + t * 0.010;       // 0.010..0.020 per frame-ish (scaled below)
+    const t = (n - 1 - r) / (n - 1);
+    return 0.70 + t * 0.60; // units: "progress per second" bias
   };
 
-  // Per-horse “stride personality”
   const stride = {};
   race.horses.forEach(h => {
-    // Slightly favor stronger (lower odds) horses in the *look* too
-    const strength = 1 / h.odds; // rough
+    const strength = 1 / (h.frac + 1); // rough; favorites slightly smoother
     stride[h.id] = {
-      base: 0.9 + strength * 0.8,          // base pace
-      wobble: 0.6 + Math.random() * 0.6,   // how swingy their strides are
-      phase: Math.random() * Math.PI * 2,  // unique cadence
+      base: 0.85 + strength * 0.90,       // pace scalar
+      wobble: 0.6 + Math.random() * 0.6,
+      phase: Math.random() * Math.PI * 2,
     };
   });
 
   return new Promise((resolve) => {
     const start = performance.now();
+    let last = start;
 
     function frame(now) {
-      const t = (now - start) / durationMs; // 0..1
+      const t = (now - start) / durationMs;   // 0..1
       const done = t >= 1;
 
-      // Each frame: add a small delta to each horse
+      const dtMs = Math.max(0, now - last);
+      last = now;
+
+      // Convert dt into seconds for rate-based integration
+      const dt = dtMs / 1000;
+
       race.horses.forEach(h => {
         const id = h.id;
         const s = stride[id];
 
-        // cadence-based stride + random jitter
+        // cadence-based stride (visual flavor)
         const cadence = Math.sin((t * 10.0) + s.phase) * 0.5 + 0.5; // 0..1
-        const noise = (Math.random() - 0.5) * 0.003 * s.wobble;
+        const noise = (Math.random() - 0.5) * 0.02 * s.wobble;      // small per-second noise
 
-        // Late-race “kick” makes finishes dramatic, but still respects ranking
-        const kick = t > 0.70 ? (1 + (1 - (rank[id] / (n - 1))) * 0.25) : 1;
+        // Late kick
+        const kick = t > 0.70 ? (1 + (1 - ((rank[id] ?? (n - 1)) / (n - 1))) * 0.25) : 1;
 
-        // delta progress
-        const delta = (0.008 * s.base + biasOf(id)) * kick + noise;
+        // Base rate: tuned so average horse finishes around 1.0 by end
+        const rate = (0.95 * s.base + 0.18 * biasOf(id)) * kick;
 
-        prog[id] = clamp(prog[id] + delta, 0, 1.3);
+        // integrate
+        prog[id] = clamp(prog[id] + (rate + noise) * dt * 0.18, 0, 1.3);
+
+        // Add small cadence bump
+        prog[id] = clamp(prog[id] + cadence * dt * 0.01, 0, 1.3);
       });
 
-      // To guarantee finish order, we “steer” the last ~15% toward target spacing
       if (t > 0.85) {
         const targets = makeFinishTargets(race.finishOrder);
         race.finishOrder.forEach((h, i) => {
@@ -236,7 +249,6 @@ function animateRace(trackEl, race, { durationMs = 5000 } = {}) {
         });
       }
 
-      // Render: convert progress -> pixel x
       horses.forEach(el => {
         const id = el.dataset.id;
         const x = clamp01(prog[id]) * maxX;
@@ -246,13 +258,11 @@ function animateRace(trackEl, race, { durationMs = 5000 } = {}) {
       if (!done) {
         requestAnimationFrame(frame);
       } else {
-        // Snap to final finish order positions (winner closest to finish)
         const finalTargets = makeFinishTargets(race.finishOrder);
         race.finishOrder.forEach((h, i) => {
           const el = byId[h.id];
           if (!el) return;
-          const x = finalTargets[i] * maxX;
-          el.style.transform = `translateX(${x}px)`;
+          el.style.transform = `translateX(${finalTargets[i] * maxX}px)`;
         });
         resolve();
       }
@@ -261,6 +271,7 @@ function animateRace(trackEl, race, { durationMs = 5000 } = {}) {
     requestAnimationFrame(frame);
   });
 }
+
 
 // Winner ~1.00, second ~0.985, ... last a bit behind
 function makeFinishTargets(finishOrder) {
