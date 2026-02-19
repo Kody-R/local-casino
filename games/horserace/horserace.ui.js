@@ -102,7 +102,6 @@ function renderRace() {
 
     const pickedHorseId = horsePickEl.value;
 
-    // Animate ~8 seconds; guaranteed finish order = race.finishOrder
     await animateRace(trackEl, race, { durationMs: race.durationMs });
 
 

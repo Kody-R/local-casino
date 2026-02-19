@@ -16,10 +16,12 @@ export function makeRace({ horseCount = 8, takeout = 0.15, rng = Math.random, du
   const ladder = ladders[horseCount];
 
   // Generate lognormal-ish strengths -> probabilities
+  const usedNames = new Set();
+  
   const horses = Array.from({ length: horseCount }, (_, i) => {
-    const z = (rng() * 2 - 1) * sigma;          // [-sigma, +sigma]
-    const strength = Math.exp(z);              // lognormal-ish
-    return { id: `H${i + 1}`, name: defaultHorseName(i), strength };
+    const z = (rng() * 2 - 1) * sigma;
+    const strength = Math.exp(z);
+    return { id: `H${i + 1}`, name: defaultHorseName(i, usedNames, rng), strength };
   });
 
   const sum = horses.reduce((a, h) => a + h.strength, 0);
@@ -94,11 +96,57 @@ function quantizeToLadder(x, ladder) {
   return best;
 }
 
-function defaultHorseName(i) {
-  const a = ["Midnight", "Solar", "Crimson", "Neon", "Silver", "Thunder", "Velvet", "Rapid"];
-  const b = ["Circuit", "Comet", "Dash", "Arrow", "Mirage", "Runner", "Stride", "Storm"];
-  return `${a[i % a.length]} ${b[(i * 3) % b.length]}`;
+function defaultHorseName(i, used = new Set(), rng = Math.random) {
+  const A = [
+    "Midnight","Solar","Crimson","Neon","Silver","Thunder","Velvet","Rapid",
+    "Blazing","Iron","Phantom","Quantum","Electric","Scarlet","Golden",
+    "Shadow","Blitz","Frost","Obsidian","Turbo","Mystic","Royal",
+    "Inferno","Stealth","Cosmic","Titan","Vortex","Emerald",
+    "Onyx","Starlight","Lunar","Atomic","Chrome","Hyper",
+    "Velocity","Majestic","Radiant","Eclipse","Cobalt","Sapphire"
+  ];
+
+  const B = [
+    "Circuit","Comet","Dash","Arrow","Mirage","Runner","Stride","Storm",
+    "Blaze","Rocket","Falcon","Rider","Flash","Tempest","Bolt","Nova",
+    "Drift","Charge","Fury","Horizon","Breaker","Surge","Glide",
+    "Whisper","Clash","Strike","Trail","Derby","Sprint","Streak","Charger"
+  ];
+
+  const ROMAN = ["II", "III", "IV", "V"];
+
+  // tune these to taste
+  const THE_CHANCE = 0.15;     // 15% chance: "The ..."
+  const ROMAN_CHANCE = 0.20;   // 20% chance: "... II/III/IV/V"
+
+  let tries = 0;
+  while (tries++ < 80) {
+    const a = A[Math.floor(rng() * A.length)];
+    const b = B[Math.floor(rng() * B.length)];
+    if (a === b) continue;
+
+    let name = `${a} ${b}`;
+
+    // optional "The" prefix
+    if (rng() < THE_CHANCE) name = `The ${name}`;
+
+    // optional roman numeral suffix
+    if (rng() < ROMAN_CHANCE) {
+      const numeral = ROMAN[Math.floor(rng() * ROMAN.length)];
+      name = `${name} ${numeral}`;
+    }
+
+    if (!used.has(name)) {
+      used.add(name);
+      return name;
+    }
+  }
+
+  // fallback (should be rare)
+  return `Horse ${i + 1}`;
 }
+
+
 
 function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
 
