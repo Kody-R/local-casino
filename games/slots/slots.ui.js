@@ -111,7 +111,7 @@ export function mountSlots(mountEl, store) {
   };
 
   
-
+  let coinMeter = 0;
   el.theme.addEventListener("change", async () => {
   const themeKey = el.theme.value;
   const theme = THEMES[themeKey];
@@ -145,6 +145,15 @@ export function mountSlots(mountEl, store) {
   renderStatic(el.reels, THEMES[el.theme.value]);
   renderRules(el, THEMES[el.theme.value]);
   rebuildLinesSelect(el.lines, THEMES[el.theme.value]);
+
+  async function loadCoinMeter(store, themeKey) {
+  return Number(await store.getSetting(`COIN_METER:${themeKey}`, 0)) || 0;
+}
+
+async function saveCoinMeter(store, themeKey, value) {
+  await store.setSetting(`COIN_METER:${themeKey}`, value);
+}
+
 
   async function refreshBank() {
     const pid = store.currentPlayerId;
@@ -183,7 +192,7 @@ function renderWinBreakdown(el, theme, res, bet) {
   if (res.lineWins.length) parts.push(`${res.lineWins.length} line win(s)`);
   if (res.scatterWin > 0) parts.push(`Scatter win ${res.scatterWin}`);
   if (res.triggers?.freeSpins) parts.push(`Free Spins x${res.triggers.freeSpinsAward}`);
-  if (res.triggers?.holdSpin) parts.push(`Hold & Spin triggered`);
+  if (res.baseHoldTrig) parts.push(`Hold & Spin triggered`);
 
   el.winSummary.textContent = parts.length ? parts.join(" • ") : "No wins";
 
@@ -298,23 +307,39 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
       applyTheme(mountEl, theme);
       mountEl.classList.toggle("noLabels", theme.showLabels === false);
 
+      // During free spins, we reuse the snapshot bet
+      const useBet = freeSpinsLeft > 0 ? lastBetSnapshot : { linesEnabled, betPerLine };
+
+      // 🔥 Effective bet (important for free spins)
+      const effectiveTotalBet = useBet.betPerLine * useBet.linesEnabled;
+          
+      // Progressive bet scaling
+      const progScaleCfg = theme.bonus?.holdSpin?.progressive?.betScale;
+          
+      let betMult = 1;
+          
+      if (progScaleCfg) {
+        const base = progScaleCfg.baseTotalBet ?? 1;
+        const max  = progScaleCfg.maxMult ?? 50;
+      
+        betMult = Math.max(1, Math.min(max, effectiveTotalBet / base));
+      }
+
       // Load meters once per spin (simple + safe). You can cache later.
       const progCfg = theme.bonus?.holdSpin?.progressive;
       let jp = progCfg ? await loadProgressives(store, themeKey, progCfg.seed) : null;
-      if (jp) renderProgressives(el, jp);
+      if (jp) renderProgressives(el, jp, betMult);
+
+
 
       if (jp && freeSpinsLeft === 0) {
         // add a % of totalBet into each pool
-        jp.MINI  = Math.round(jp.MINI  + totalBet * progCfg.rate.MINI);
-        jp.MINOR = Math.round(jp.MINOR + totalBet * progCfg.rate.MINOR);
-        jp.MAJOR = Math.round(jp.MAJOR + totalBet * progCfg.rate.MAJOR);
+        jp.MINI  = Math.round(jp.MINI  + effectiveTotalBet * progCfg.rate.MINI);
+        jp.MINOR = Math.round(jp.MINOR + effectiveTotalBet * progCfg.rate.MINOR);
+        jp.MAJOR = Math.round(jp.MAJOR + effectiveTotalBet * progCfg.rate.MAJOR);
         await saveProgressives(store, themeKey, jp);
-        renderProgressives(el, jp);
+        renderProgressives(el, jp, betMult);
       }
-
-
-      // During free spins, we reuse the snapshot bet
-      const useBet = freeSpinsLeft > 0 ? lastBetSnapshot : { linesEnabled, betPerLine };
 
       if (freeSpinsLeft === 0) {
         // store snapshot for free spins
@@ -324,7 +349,7 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
       // charge bet only if NOT a free spin
       const round = await store.startRound("SLOTS");
       if (freeSpinsLeft === 0) {
-        await store.placeBet(round.id, `BET:${useBet.linesEnabled}L@${useBet.betPerLine}`, totalBet);
+        await store.placeBet(round.id, `BET:${useBet.linesEnabled}L@${useBet.betPerLine}`, effectiveTotalBet);
       } else {
         await store.placeBet(round.id, `FREESPIN`, 0);
       }
@@ -334,6 +359,22 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
 
       // spin result
       const res = spinSlots(theme, useBet);
+      const meterCfg = theme.bonus?.holdSpin?.meter;
+
+      let holdSpinTriggered = false;
+      
+      if (meterCfg?.enabled) {
+        coinMeter = await loadCoinMeter(store, themeKey);
+        coinMeter += res.coinCount;
+      
+        if (coinMeter >= meterCfg.threshold) {
+          holdSpinTriggered = true;
+          coinMeter = 0; // reset meter
+        }
+      
+        await saveCoinMeter(store, themeKey, coinMeter);
+      }
+
 
       // animate reels to show res.grid
       await animateToGrid(el.reels, res.grid, STOP_DELAYS, theme);
@@ -363,21 +404,31 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
         `${res.lineWins.length} line win(s), Scatters: ${res.scatters} (${res.scatterWin}). Bonus: ${bonusText}`;
 
       // handle triggers
-      if (res.triggers.freeSpins && freeSpinsLeft === 0) {
-        freeSpinsLeft = res.triggers.freeSpinsAward;
-        freeSpinTotal = freeSpinsLeft;
-        showOverlay(el, "Free Spins!", `You won <b>${freeSpinsLeft}</b> free spins. Same bet carries through.`, [
-          { label:"Start", cls:"ok", onClick: () => hideOverlay(el) }
-        ]);
+      // handle triggers (support retrigger during free spins)
+      if (res.triggers.freeSpins) {
+        const add = res.triggers.freeSpinsAward || 0;
+        if (add > 0) {
+          freeSpinsLeft += add;
+          freeSpinTotal += add;
+      
+          // Optional: show a retrigger popup only if not already showing another overlay
+          const overlayOpen = !el.overlay.classList.contains("hidden");
+          if (!overlayOpen) {
+            showOverlay(el, "Free Spins Retrigger!", `+<b>${add}</b> free spins added.`, [
+              { label: "OK", cls: "ok", onClick: () => hideOverlay(el) }
+            ]);
+          }
+        }
       }
+
 
       if (res.triggers.pickBonus) {
         // Run pick bonus (simple medium realism)
         await runPickBonus(el, store);
       }
 
-      if (res.triggers.holdSpin) {
-        await runHoldSpinBonus(el, store, themeKey, theme, res.grid);
+      if (holdSpinTriggered || res.baseHoldTrig) {
+        await runHoldSpinBonus(el, store, themeKey, theme, res.grid, betMult);
       }
 
       // decrement free spins after the spin resolves
@@ -394,6 +445,7 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
         }
       }
 
+      renderCoinMeter(el, coinMeter, meterCfg.threshold);
       await refreshBank();
     } catch (e) {
       alert(e.message);
@@ -406,14 +458,14 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
   refreshBank();
 }
 
-async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid) {
+async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid, betMult = 1) {
 
   // Start bonus state
   let hs = startHoldSpin(theme, baseGrid);
 
   const progCfg = theme.bonus?.holdSpin?.progressive;
   let jp = progCfg ? await loadProgressives(store, themeKey, progCfg.seed) : null;
-  if (jp) renderProgressives(el, jp);
+  if (jp) renderProgressives(el, jp, betMult);
 
 
   // Render loop with “medium realism” pacing
@@ -456,7 +508,7 @@ async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid) {
   
     if (v.kind === "JACKPOT" && jp) {
       // pay current progressive
-      award += jp[v.label] ?? 0;
+      award += Math.round((jp[v.label] ?? 0) * betMult);
       hit[v.label] = true;
     } else {
       award += v.value;
@@ -471,7 +523,7 @@ async function runHoldSpinBonus(el, store, themeKey, theme, baseGrid) {
       }
     }
     await saveProgressives(store, themeKey, jp);
-    renderProgressives(el, jp);
+    renderProgressives(el, jp, betMult);
   }
 
   el.ovBody.innerHTML += `<div class="value" style="margin-top:12px;">Bonus Win: ${award}</div>`;
@@ -702,15 +754,26 @@ async function saveProgressives(store, themeKey, jp) {
   }
 }
 
-function renderProgressives(el, jp) {
+function renderProgressives(el, jp, mult = 1) {
+  const fmt = (v) => Math.round(v * mult);
+
   el.jpbar.innerHTML = `
     <div class="jpMeter">
-      <div class="jpPill" data-jp="MINI">MINI: ${jp.MINI}</div>
-      <div class="jpPill" data-jp="MINOR">MINOR: ${jp.MINOR}</div>
-      <div class="jpPill" data-jp="MAJOR">MAJOR: ${jp.MAJOR}</div>
+      <div class="jpPill" data-jp="MINI">MINI: ${fmt(jp.MINI)}</div>
+      <div class="jpPill" data-jp="MINOR">MINOR: ${fmt(jp.MINOR)}</div>
+      <div class="jpPill" data-jp="MAJOR">MAJOR: ${fmt(jp.MAJOR)}</div>
     </div>
   `;
 }
+
+function renderCoinMeter(el, value, threshold) {
+  el.jpbar.innerHTML += `
+    <div class="jpMeter">
+      <div class="jpPill">Coin Meter: ${value} / ${threshold}</div>
+    </div>
+  `;
+}
+
 
 function flashMeter(el, which) {
   const pill = el.jpbar.querySelector(`.jpPill[data-jp="${which}"]`);

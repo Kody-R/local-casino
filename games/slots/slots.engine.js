@@ -45,7 +45,7 @@ export function spinSlots(theme, { betPerLine, linesEnabled }) {
   }
 
   const coinCount = countWhere(grid, s => symbols[s]?.coin || symbols[s]?.jackpot);
-  const holdTrig = coinCount >= (bonus?.holdSpin?.triggerCoins ?? 999);
+  const baseHoldTrig = coinCount >= (bonus?.holdSpin?.triggerCoins ?? 999);
 
   const freeSpinTrig = scat >= (bonus?.freeSpins?.scatterNeeded ?? 999);
   const freeSpinsAward = freeSpinTrig ? (bonus.freeSpins.awards[scat] ?? 0) : 0;
@@ -57,7 +57,8 @@ export function spinSlots(theme, { betPerLine, linesEnabled }) {
     scatters: scat,
     scatterWin,
     coinCount,
-    triggers: { freeSpins: freeSpinTrig, freeSpinsAward, holdSpin: holdTrig },
+    baseHoldTrig,
+    triggers: { freeSpins: freeSpinTrig, freeSpinsAward, holdSpin: baseHoldTrig},
     totalWin: totalLinePay + scatterWin,
   };
 }

@@ -112,8 +112,14 @@ paylines: [
 
       progressive: {
         seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },
-        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 }
+        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+        betScale: { baseBet: 1, maxMult: 50 }
+      },
+      meter: {
+        enabled: true,
+        threshold: 250  // total coins across spins required
       }
+
     }
   }
 
@@ -219,8 +225,14 @@ icons: {
       freeSpins: { scatterNeeded: 3, awards: {3: 6, 4: 10, 5: 15} },
       holdSpin: { triggerCoins: 6, respins: 3, grid:{rows:5, cols:5}, jackpots:{MINI:40, MINOR:150, MAJOR:800},progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
-          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 } // % of paid bet
-        } }
+          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+  betScale: { baseBet: 1, maxMult: 50 } // % of paid bet
+        },
+      meter: {
+        enabled: true,
+        threshold: 250  // total coins across spins required
+      }
+     }
     }
   },
     "space-heist": {
@@ -328,8 +340,13 @@ icons: {
         jackpots:{ MINI:75, MINOR:300, MAJOR:1500 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
-          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 } // % of paid bet
-        }
+          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+  betScale: { baseBet: 1, maxMult: 50 } // % of paid bet
+        },
+        meter: {
+        enabled: true,
+        threshold: 250  // total coins across spins required
+      }
       }
     }
   },
@@ -438,8 +455,13 @@ icons: {
         jackpots:{ MINI:100, MINOR:400, MAJOR:2000 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
-          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 } // % of paid bet
-        }
+          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+  betScale: { baseBet: 1, maxMult: 50 } // % of paid bet
+        },
+        meter: {
+        enabled: true,
+        threshold: 250  // total coins across spins required
+      }
       }
     }
   },
@@ -548,8 +570,13 @@ icons: {
         jackpots:{ MINI:60, MINOR:250, MAJOR:1200 },
         progressive: {
           seed:  { MINI: 50,  MINOR: 200, MAJOR: 1000 },
-          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 } // % of paid bet
-        }
+          rate:  { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+          betScale: { baseBet: 1, maxMult: 50 } // % of paid bet
+        },
+        meter: {
+        enabled: true,
+        threshold: 250  // total coins across spins required
+      }
       }
     }
   },
