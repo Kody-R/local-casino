@@ -996,3 +996,53 @@ select option:disabled{
 .s21-actions { display:flex; gap: 10px; flex-wrap: wrap; }
 .s21-result { padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.18); }
 .s21-info { margin-top: 8px; opacity: 0.9; }
+
+/* --- 3 Shot Poker --- */
+.ts-wrap { padding: 12px; display: grid; gap: 12px; }
+
+.ts-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ts-controls { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+.ts-msg { opacity: 0.9; }
+
+.ts-area {
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.ts-title { font-weight: 800; margin-bottom: 8px; }
+
+.ts-cards {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap; /* keep hole/community tidy */
+}
+
+/* make sure poker cards never stretch */
+.ts-cards .pokerCard { flex: 0 0 auto; }
+
+.ts-actions { display:flex; gap: 10px; flex-wrap: wrap; }
+
+.ts-result {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+}
+
+.ts-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.ts-table th, .ts-table td {
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding: 6px 8px;
+  text-align: left;
+}

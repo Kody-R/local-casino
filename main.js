@@ -54,6 +54,9 @@ async function loadGame(gameKey) {
  } else if (gameKey === "spanish21") {
   const mod = await import("./games/spanish21/spanish21.ui.js");
   mod.mountSpanish21(els.gameMount, store); }
+  else if (gameKey === "threeshot") {
+    const mod = await import("./games/threeshot/threeshot.ui.js");
+    mod.mountThreeShot(els.gameMount, store); }
   else {
         els.gameMount.textContent = "Unknown game.";
       }
