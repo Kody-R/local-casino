@@ -10,6 +10,7 @@ import {
 import { renderCards, renderCardBack } from "../../core/cards.js";
 
 export function mountThreeShot(rootEl, store) {
+  let revealStep = 0; // 0=none, 1=shot1, 2=shot2, 3=shot3, 4=five, 5=summary
   let state = newThreeShotState({ balance: 0 });
   let round = null;
 
@@ -46,19 +47,75 @@ export function mountThreeShot(rootEl, store) {
       <div class="controls">
         <button id="btnRaise" ${state.phase !== "DECISION" ? "disabled" : ""}>Raise</button>
         <button id="btnFold" ${state.phase !== "DECISION" ? "disabled" : ""}>Fold</button>
+        <button id="btnReveal" ${state.phase !== "RESULT" ? "disabled" : ""}>Show Winnings</button>
         <button id="btnNext" ${state.phase !== "RESULT" ? "disabled" : ""}>Next Round</button>
       </div>
+
+      <div id="tsResult" class="ts-result"></div>
     `;
 
-    // Render cards using core/cards.js
     const holeEl = rootEl.querySelector("#tsHole");
-    const commEl = rootEl.querySelector("#tsComm");
-    
-    const holeFaceDown = (state.phase === "BETTING");
-    const commFaceDown = (state.phase !== "RESULT");
-    
-    renderCards(holeEl, state.hole, holeFaceDown);
-    renderCards(commEl, state.community, commFaceDown);
+const commEl = rootEl.querySelector("#tsComm");
+const resEl  = rootEl.querySelector("#tsResult");
+
+// Face-down rules
+const holeDown = (state.phase === "BETTING");
+const commDown = (state.phase !== "RESULT");
+
+// Default: no highlight
+let holeHi = null;
+let commHi = null;
+
+if (state.phase === "RESULT" && state.results) {
+  // Highlight logic: hole indices are 0,1. community indices are 0,1,2
+  if (revealStep === 1) { holeHi = new Set([0,1]); commHi = new Set([0]); }
+  if (revealStep === 2) { holeHi = new Set([0,1]); commHi = new Set([1]); }
+  if (revealStep === 3) { holeHi = new Set([0,1]); commHi = new Set([2]); }
+  if (revealStep === 4) { holeHi = new Set([0,1]); commHi = new Set([0,1,2]); }
+}
+
+renderCards(holeEl, state.hole, holeDown, { highlightIdx: holeHi, dimOthers: true });
+renderCards(commEl, state.community, commDown, { highlightIdx: commHi, dimOthers: true });
+
+// Results text
+resEl.innerHTML = "";
+if (state.phase === "RESULT" && state.results) {
+  const r = state.results;
+
+  const shotLine = (i) => {
+    const s = r.shots[i];
+    if (!s.bet) return `<div class="mono">${s.label}: no bet</div>`;
+    const profit = (s.win > 0) ? (s.win - s.bet) : 0;
+    return `<div class="mono">${s.label}: ${s.eval.name} • bet ${s.bet} • pays ${s.mult}:1 • profit ${profit}</div>`;
+  };
+
+  const five = r.five;
+  const fiveLine = () => {
+    if (!five.bet) return `<div class="mono">5 Shot: no bet</div>`;
+    const profit = (five.win > 0) ? (five.win - five.bet) : 0;
+    return `<div class="mono">5 Shot: ${five.eval.name} • bet ${five.bet} • pays ${five.mult}:1 • profit ${profit}</div>`;
+  };
+
+  if (revealStep === 0) {
+    resEl.innerHTML = `<div class="mono">Click “Show Winnings” to step through results.</div>`;
+  } else if (revealStep === 1) {
+    resEl.innerHTML = shotLine(0);
+  } else if (revealStep === 2) {
+    resEl.innerHTML = shotLine(1);
+  } else if (revealStep === 3) {
+    resEl.innerHTML = shotLine(2);
+  } else if (revealStep === 4) {
+    resEl.innerHTML = fiveLine();
+  } else {
+    resEl.innerHTML = `
+      ${shotLine(0)}
+      ${shotLine(1)}
+      ${shotLine(2)}
+      ${fiveLine()}
+      <div style="margin-top:8px;"><b>Net:</b> ${r.lastNet}</div>
+    `;
+  }
+}
     
     bindEvents();
   }
@@ -87,6 +144,7 @@ export function mountThreeShot(rootEl, store) {
       }
 
       state = startRound(state, { bet1, bet5 });
+      revealStep = 0;
       await store.uiRefresh();
       await paint();
     });
@@ -108,6 +166,7 @@ export function mountThreeShot(rootEl, store) {
 
     rootEl.querySelector("#btnFold")?.addEventListener("click", async () => {
       state = playerFold(state);
+      revealStep = 0;
       await settleAllBets();
       await paint();
     });
@@ -117,6 +176,12 @@ export function mountThreeShot(rootEl, store) {
       round = null;
       await paint();
     });
+
+    rootEl.querySelector("#btnReveal")?.addEventListener("click", async () => {
+  if (state.phase !== "RESULT") return;
+  revealStep = Math.min(revealStep + 1, 5);
+  await paint();
+});
   }
 
   async function settleAllBets() {
