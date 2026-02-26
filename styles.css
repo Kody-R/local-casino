@@ -1097,3 +1097,108 @@ select option:disabled{
 }
 
 html, body { overflow-x: hidden; }
+
+/* ============================
+   Around the World (ATW)
+   ============================ */
+.atw-wrap{ display:grid; gap:12px; padding:12px; }
+
+.atw-top{
+  display:flex; justify-content:space-between; align-items:flex-end;
+  gap:12px; flex-wrap:wrap;
+}
+.atw-title{ font-size:28px; font-weight:900; letter-spacing:.2px; }
+.atw-balance{ opacity:.95; font-weight:700; }
+
+.atw-card{
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  border-radius:14px;
+  padding:12px;
+}
+
+.atw-msg{ opacity:.9; }
+
+.atw-grid{
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap:12px;
+}
+@media (max-width: 900px){
+  .atw-grid{ grid-template-columns: 1fr; }
+}
+
+.atw-meter{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.atw-badges{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+.atw-badge{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  font-weight:800;
+  font-size:12px;
+}
+
+.atw-strikes{ display:flex; gap:8px; align-items:center; }
+.atw-light{
+  width:14px; height:14px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.15);
+}
+.atw-light.on{
+  background: rgba(255,80,80,0.85);
+  box-shadow: 0 0 10px rgba(255,80,80,0.35);
+}
+
+.atw-steps{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.atw-step{
+  width:22px; height:22px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.18);
+  font-size:12px; font-weight:900;
+  opacity:.75;
+}
+.atw-step.done{ opacity:1; background: rgba(80,180,255,0.18); border-color: rgba(80,180,255,0.35); }
+.atw-step.cur{ opacity:1; background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.30); }
+
+.atw-numberBox{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.atw-number{
+  font-size:44px;
+  font-weight:1000;
+  letter-spacing:1px;
+  line-height:1;
+}
+.atw-sub{
+  opacity:.85;
+  font-size:12px;
+  font-weight:700;
+}
+
+.atw-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.atw-actions .btnBig{
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.atw-reveal{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px dashed rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.18);
+}
+
+.atw-log{
+  max-height:220px; overflow:auto;
+  padding:10px; border-radius:14px;
+  background: rgba(0,0,0,0.18);
+  border:1px solid rgba(255,255,255,0.10);
+  font-size:12px;
+}
