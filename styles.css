@@ -1046,3 +1046,54 @@ select option:disabled{
   padding: 6px 8px;
   text-align: left;
 }
+
+/* ---------- Mobile responsiveness ---------- */
+@media (max-width: 720px) {
+  .header { padding: 16px 14px 8px; }
+  .header h1 { font-size: 18px; }
+  .grid { padding: 12px; gap: 12px; grid-template-columns: 1fr; }
+
+  /* Stack form rows vertically (inputs/buttons) */
+  .row { flex-direction: column; }
+  .row > * { flex: initial; width: 100%; }
+
+  /* Bigger tap targets */
+  input, select, button {
+    padding: 12px 14px;
+    font-size: 16px; /* avoids iOS zoom-on-focus */
+  }
+
+  /* KPI blocks become single column */
+  .kpi { grid-template-columns: 1fr; }
+
+  /* Ledger rows wrap instead of forcing columns */
+  .ledger .item {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .ledger .amt { text-align: left; }
+
+  /* Keep card UI usable */
+  .pokerCard {
+    width: 64px;
+    height: 92px;
+    border-radius: 12px;
+  }
+  .pokerCard .pip { font-size: 34px; }
+  .pokerCard .corner .rank { font-size: 16px; }
+  .pokerCard .corner .suit { font-size: 14px; }
+
+  /* Roulette: stack wheel and bets, shrink wheel */
+  .rouletteLayout { grid-template-columns: 1fr; gap: 14px; }
+  .wheelShell { width: 260px; height: 260px; }
+  .wheelContainer { width: 260px; height: 260px; }
+
+  /* Slots: allow fewer columns on mobile */
+  .slotsStage {
+    grid-template-columns: repeat(5, minmax(54px, 1fr));
+    gap: 8px;
+  }
+  .reel { width: auto; }
+}
+
+html, body { overflow-x: hidden; }
