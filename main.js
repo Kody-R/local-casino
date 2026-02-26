@@ -57,10 +57,12 @@ async function loadGame(gameKey) {
   else if (gameKey === "threeshot") {
     const mod = await import("./games/threeshot/threeshot.ui.js");
     mod.mountThreeShot(els.gameMount, store); }
- else if (gameKey === "aroundtheworld") {
+  else if (gameKey === "aroundtheworld") {
   const mod = await import("./games/aroundtheworld/aroundtheworld.ui.js");
-  mod.mountAroundTheWorld(els.gameMount, store);
-}
+  mod.mountAroundTheWorld(els.gameMount, store);}
+  else if (gameKey === "bonusbowling") {
+  const mod = await import("./games/bonusbowling/bonusbowling.ui.js");
+  mod.mountBonusBowling(els.gameMount, store);}
   else {
         els.gameMount.textContent = "Unknown game.";
       }

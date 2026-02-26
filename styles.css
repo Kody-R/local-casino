@@ -1202,3 +1202,114 @@ html, body { overflow-x: hidden; }
   border:1px solid rgba(255,255,255,0.10);
   font-size:12px;
 }
+
+/* ============================
+   Bonus Bowling lane animation
+   ============================ */
+.bb-session{ margin-top:10px; }
+.bb-sessionRow{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.bb-sessionStats{ display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; opacity:.9; }
+
+.bb-lane{
+  position: relative;
+  height: 220px;                 /* bigger */
+  width: 100%;                   /* full width */
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.25));
+  overflow: hidden;
+}
+
+.bb-laneWrap{
+  margin-top: 12px;
+  width: 100%;
+}
+
+.bb-lane.gold{
+  box-shadow: 0 0 18px rgba(255,215,90,0.25);
+  border-color: rgba(255,215,90,0.35);
+}
+
+.bb-ball{
+  position:absolute;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  left: 14px;
+  top: 110px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.16);
+  transform: translateX(0) translateY(0) scale(1);
+}
+
+.bb-ball.roll{
+  animation: bbRoll 1.0s ease-in forwards;
+}
+
+@keyframes bbRoll{
+  0%   { transform: translateX(0) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(var(--bbTravelX, 520px)) translateY(-90px) scale(0.55); opacity: 1; }
+}
+
+.bb-pins{
+  position:absolute;
+  right: 24px;
+  bottom: 22px;                 /* anchor to bottom so it’s always visible */
+  width: 140px;                 /* larger rack */
+  height: 140px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  align-content: start;
+  justify-items: center;
+}
+
+.bb-pin{
+  width: 16px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.12);
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+/* simple triangle-ish pin rack using nth-child positions */
+.bb-pin:nth-child(1){ grid-column: 2; }
+.bb-pin:nth-child(2){ grid-column: 2; }
+.bb-pin:nth-child(3){ grid-column: 3; }
+.bb-pin:nth-child(4){ grid-column: 1; }
+.bb-pin:nth-child(5){ grid-column: 2; }
+.bb-pin:nth-child(6){ grid-column: 3; }
+.bb-pin:nth-child(7){ grid-column: 4; }
+.bb-pin:nth-child(8){ grid-column: 1; }
+.bb-pin:nth-child(9){ grid-column: 2; }
+.bb-pin:nth-child(10){ grid-column: 3; }
+
+.bb-pin.down{
+  transform: rotate(70deg) translateY(10px);
+  opacity: 0.25;
+}
+
+.bb-pins.flash .bb-pin{
+  box-shadow: 0 0 10px rgba(255,255,255,0.25);
+}
+
+.bb-history{
+  margin-top:10px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.16);
+  max-height: 160px;
+  overflow: auto;
+}
+
+.bb-lane::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.0) 100%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 44px);
+  opacity: .35;
+  pointer-events:none;
+}
