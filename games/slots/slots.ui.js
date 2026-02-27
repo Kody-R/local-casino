@@ -282,9 +282,18 @@ export function mountSlots(mountEl, store) {
   function highlightWins(mountEl, theme, res) {
     clearHighlights(mountEl);
 
-    // Line wins
+    const ROWS =
+      theme.grid?.rows ?? theme.bonus?.holdSpin?.grid?.rows ?? res.grid.length;
+
+    const COLS =
+      theme.grid?.cols ??
+      theme.bonus?.holdSpin?.grid?.cols ??
+      res.grid[0].length;
+
+    // ---------------- Line Wins ----------------
     for (const w of res.lineWins) {
       const line = theme.paylines[w.lineIndex];
+
       for (let reel = 0; reel < w.count; reel++) {
         const row = line[reel];
         const cell = mountEl.querySelector(
@@ -293,11 +302,7 @@ export function mountSlots(mountEl, store) {
         if (cell) cell.classList.add("winCell");
       }
 
-      if (res.frozenState?.mask[idx]) {
-        cell.classList.add("frozenCell");
-      }
-
-      // Badge on last contributing cell
+      // Badge
       const lastReel = w.count - 1;
       const lastRow = line[lastReel];
       const anchor = mountEl.querySelector(
@@ -311,23 +316,27 @@ export function mountSlots(mountEl, store) {
       }
     }
 
-    const ROWS =
-      theme.grid?.rows ?? theme.bonus?.holdSpin?.grid?.rows ?? res.grid.length;
-    const COLS =
-      theme.grid?.cols ??
-      theme.bonus?.holdSpin?.grid?.cols ??
-      res.grid[0].length;
-
-    for (let r = 0; r < ROWS; r++)
+    // ---------------- Scatter Highlight ----------------
+    for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const sym = res.grid[r][c];
+        const cell = mountEl.querySelector(
+          `.cell[data-row="${r}"][data-reel="${c}"]`,
+        );
+
+        if (!cell) continue;
+
         if (theme.symbols[sym]?.scatter) {
-          const cell = mountEl.querySelector(
-            `.cell[data-row="${r}"][data-reel="${c}"]`,
-          );
-          if (cell) cell.classList.add("scatterCell");
+          cell.classList.add("scatterCell");
+        }
+
+        // ❄️ Frozen highlight (Arctic Fortune)
+        const idx = r * COLS + c;
+        if (res.frozenState?.mask?.[idx]) {
+          cell.classList.add("frozenCell");
         }
       }
+    }
   }
 
   el.spin.addEventListener("click", async () => {
