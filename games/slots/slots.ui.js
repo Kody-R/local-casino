@@ -113,6 +113,7 @@ export function mountSlots(mountEl, store) {
   
   let coinMeter = 0;
   el.theme.addEventListener("change", async () => {
+  frozenState = null;
   const themeKey = el.theme.value;
   const theme = THEMES[themeKey];
   applyTheme(mountEl, theme);
@@ -140,6 +141,7 @@ export function mountSlots(mountEl, store) {
   let freeSpinTotal = 0;
   let lastBetSnapshot = null;
   let busy = false;
+  let frozenState = null;   // Arctic Fortune persistent freeze
 
   // initial render
   renderStatic(el.reels, THEMES[el.theme.value]);
@@ -268,6 +270,10 @@ function highlightWins(mountEl, theme, res) {
       if (cell) cell.classList.add("winCell");
     }
 
+    if (res.frozenState?.mask[idx]) {
+   cell.classList.add("frozenCell");
+}
+
     // Badge on last contributing cell
     const lastReel = w.count - 1;
     const lastRow = line[lastReel];
@@ -358,7 +364,11 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
       el.spin.disabled = true;
 
       // spin result
-      const res = spinSlots(theme, useBet);
+      const res = spinSlots(theme, {
+        ...useBet,
+        prevFrozen: frozenState
+      });
+      frozenState = res.frozenState ?? null;
       const meterCfg = theme.bonus?.holdSpin?.meter;
 
       let holdSpinTriggered = false;
@@ -432,6 +442,7 @@ for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
       }
 
       if (holdSpinTriggered || res.baseHoldTrig) {
+        frozenState = null;  // bonus wipes frozen grid
         await runHoldSpinBonus(el, store, themeKey, theme, res.grid, betMult);
       }
 

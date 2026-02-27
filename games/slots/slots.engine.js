@@ -1,5 +1,5 @@
 // games/slots/slots.engine.js
-export function spinSlots(theme, { betPerLine, linesEnabled }) {
+export function spinSlots(theme, { betPerLine, linesEnabled, prevFrozen }) {
   const { symbols, paylines, weights, bonus, biasPolicy } = theme;
 
   const totalBet = betPerLine * linesEnabled;
@@ -19,6 +19,57 @@ export function spinSlots(theme, { betPerLine, linesEnabled }) {
   const grid = Array.from({ length: ROWS }, (_, row) =>
     reels.map(col => col[row])
   );
+
+  // ---------------- Arctic Fortune Frozen Coin Mechanic ----------------
+let frozenState = prevFrozen ?? null;
+
+if (theme.mechanics?.frozenCoins?.enabled) {
+  const mech = theme.mechanics.frozenCoins;
+  const totalCells = ROWS * COLS;
+
+  // Initialize state if first spin
+  if (!frozenState) {
+    frozenState = {
+      mask: Array(totalCells).fill(false),
+      ttl:  Array(totalCells).fill(0),
+    };
+  }
+
+  // 1) Decrement TTL + melt expired
+  for (let i = 0; i < totalCells; i++) {
+    if (frozenState.ttl[i] > 0) frozenState.ttl[i]--;
+    if (frozenState.ttl[i] === 0) frozenState.mask[i] = false;
+  }
+
+  // 2) Force frozen positions to remain coins
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const idx = r * COLS + c;
+      if (frozenState.mask[idx]) {
+        grid[r][c] = "C";
+      }
+    }
+  }
+
+  // 3) Freeze newly landed coins
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const idx = r * COLS + c;
+      const isCoin = grid[r][c] === "C";
+      const alreadyFrozen = frozenState.mask[idx];
+
+      if (
+        isCoin &&
+        !alreadyFrozen &&
+        Math.random() < mech.freezeChance
+      ) {
+        frozenState.mask[idx] = true;
+        frozenState.ttl[idx] = mech.maxHoldSpins;
+      }
+    }
+  }
+}
+// ----------------------------------------------------------------------
 
 
   // ---- the rest of your existing win logic can remain the same ----
@@ -51,16 +102,17 @@ export function spinSlots(theme, { betPerLine, linesEnabled }) {
   const freeSpinsAward = freeSpinTrig ? (bonus.freeSpins.awards[scat] ?? 0) : 0;
 
   return {
-    grid,
-    lineWins,
-    totalLinePay,
-    scatters: scat,
-    scatterWin,
-    coinCount,
-    baseHoldTrig,
-    triggers: { freeSpins: freeSpinTrig, freeSpinsAward, holdSpin: baseHoldTrig},
-    totalWin: totalLinePay + scatterWin,
-  };
+  grid,
+  lineWins,
+  totalLinePay,
+  scatters: scat,
+  scatterWin,
+  coinCount,
+  baseHoldTrig,
+  triggers: { freeSpins: freeSpinTrig, freeSpinsAward, holdSpin: baseHoldTrig},
+  totalWin: totalLinePay + scatterWin,
+  frozenState
+};
 }
 
 function computeBias(totalBet, linesEnabled, policy) {

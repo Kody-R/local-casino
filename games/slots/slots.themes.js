@@ -580,7 +580,340 @@ icons: {
       }
     }
   },
-  
+
+  "neon-night-1985": {
+  name: "Neon Night 1985",
+  accent: "#ff2bd6",
+  showLabels: false,
+  grid:{rows:5,cols:5},
+
+  symbols: {
+    W:  { name:"Guitar", payout:{3:70,4:300,5:1600}, wild:true },
+
+    A:  { name:"Sunglasses", payout:{3:10,4:35,5:140} },
+    K:  { name:"BoomBox",    payout:{3:8, 4:28,5:110} },
+    Q:  { name:"Arcade",     payout:{3:6, 4:22,5:90}  },
+    J:  { name:"Cassette",   payout:{3:5, 4:18,5:75}  },
+    T:  { name:"Roller",     payout:{3:4, 4:14,5:60}  },
+
+    S:  { name:"Skyline", payout:{3:2,4:10,5:50}, scatter:true },
+    B:  { name:"VHS Bonus", payout:{}, bonus:true },
+    C:  { name:"Neon Coin", payout:{}, coin:true },
+
+    MJ:  { name:"MINI",  payout:{}, jackpot:"MINI" },
+    MR:  { name:"MINOR", payout:{}, jackpot:"MINOR" },
+    MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
+  },
+
+  icons: {
+    W:"🎸",
+    A:"🕶️", K:"📻", Q:"🕹️", J:"💿", T:"🛼",
+    S:"🌆",
+    B:"📼",
+    C:"💰",
+    MJ:"💵", MR:"💳", MJ2:"👑",
+  },
+
+  weights: [
+    // Reel 1 (slightly higher features)
+    { A:18, K:18, Q:16, J:14, T:14, W:2.1, S:2.0, B:1.0, C:3.0, MJ:0.10, MR:0.05, MJ2:0.02 },
+    // Reel 2
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:2.0, B:1.0, C:3.0, MJ:0.10, MR:0.05, MJ2:0.02 },
+    // Reel 3 (juicier)
+    { A:18, K:18, Q:16, J:14, T:14, W:2.2, S:2.1, B:1.05,C:4.0, MJ:0.12, MR:0.06, MJ2:0.02 },
+    // Reel 4
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:2.0, B:1.0, C:3.0, MJ:0.10, MR:0.05, MJ2:0.02 },
+    // Reel 5 (slightly lower features)
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.8, B:0.9, C:2.7, MJ:0.08, MR:0.04, MJ2:0.015 },
+  ],
+
+  // Slightly more “feature-forward” than base vegas-gold, but still subtle.
+  biasPolicy: {
+    maxScatterBoost: 1.3,
+    maxBonusBoost:   0.9,
+    maxCoinBoost:    2.0,
+    betScale: 55,
+  },
+
+  // Reuse the same 25 paylines for consistency across your slots pack
+  paylines: [
+    [2,2,2,2,2],[1,1,1,1,1],[3,3,3,3,3],[0,0,0,0,0],[4,4,4,4,4],
+    [0,1,2,3,4],[4,3,2,1,0],[1,2,3,2,1],[3,2,1,2,3],
+    [0,0,1,0,0],[4,4,3,4,4],[1,1,2,1,1],[3,3,2,3,3],[0,1,1,1,0],[4,3,3,3,4],
+    [0,1,0,1,0],[4,3,4,3,4],[1,2,1,2,1],[3,2,3,2,3],[0,2,4,2,0],
+    [2,1,0,1,2],[2,3,4,3,2],[1,0,1,0,1],[3,4,3,4,3],[2,0,2,4,2],
+  ],
+
+  bonus: {
+    freeSpins: { scatterNeeded: 3, awards: {3: 10, 4: 15, 5: 25} },
+
+    holdSpin: {
+      triggerCoins: 6,
+      respins: 3,
+      grid: { rows: 5, cols: 5 },
+
+      jackpots: { MINI: 60, MINOR: 250, MAJOR: 1200 },
+
+      progressive: {
+        seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },
+        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+        betScale: { baseBet: 1, maxMult: 50 }
+      },
+      meter: { enabled: true, threshold: 250 }
+    }
+  }
+},
+
+"gridiron-glory": {
+  name: "Gridiron Glory",
+  accent: "#22c55e",
+  showLabels: false,
+  grid:{rows:5,cols:5},
+
+  symbols: {
+    W:  { name:"Touchdown", payout:{3:80,4:360,5:1800}, wild:true },
+
+    A:  { name:"Helmet", payout:{3:10,4:35,5:140} },
+    K:  { name:"Football", payout:{3:8,4:30,5:120} },
+    Q:  { name:"Goalpost", payout:{3:6,4:22,5:90} },
+    J:  { name:"Cleats", payout:{3:5,4:18,5:75} },
+    T:  { name:"Whistle", payout:{3:4,4:14,5:60} },
+
+    S:  { name:"Stadium", payout:{3:2,4:10,5:50}, scatter:true },
+    B:  { name:"Playbook Bonus", payout:{}, bonus:true },
+    C:  { name:"Yard Coin", payout:{}, coin:true },
+
+    MJ:  { name:"MINI",  payout:{}, jackpot:"MINI" },
+    MR:  { name:"MINOR", payout:{}, jackpot:"MINOR" },
+    MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
+  },
+
+  icons: {
+    W:"🏈",
+    A:"🪖",   // helmet-ish; emoji set varies per platform
+    K:"🏈",
+    Q:"🥅",
+    J:"👟",
+    T:"📣",
+    S:"🏟️",
+    B:"📋",
+    C:"🪙",
+    MJ:"💵", MR:"💳", MJ2:"👑",
+  },
+
+  // Slightly “tighter” on features, higher symbol pay ceiling => feels punchier.
+  weights: [
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.8, B:0.85, C:2.6, MJ:0.09, MR:0.045, MJ2:0.018 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.8, B:0.85, C:2.6, MJ:0.09, MR:0.045, MJ2:0.018 },
+    { A:18, K:18, Q:16, J:14, T:14, W:2.05,S:1.9, B:0.9,  C:3.3, MJ:0.11, MR:0.055, MJ2:0.02  },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.8, B:0.85, C:2.6, MJ:0.09, MR:0.045, MJ2:0.018 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.8, S:1.6, B:0.75, C:2.3, MJ:0.075,MR:0.035, MJ2:0.014 },
+  ],
+
+  biasPolicy: {
+    // keep boosts subtle—this theme is already “spiky”
+    maxScatterBoost: 1.1,
+    maxBonusBoost:   0.7,
+    maxCoinBoost:    1.6,
+    betScale: 70,
+  },
+
+  paylines: [
+    [2,2,2,2,2],[1,1,1,1,1],[3,3,3,3,3],[0,0,0,0,0],[4,4,4,4,4],
+    [0,1,2,3,4],[4,3,2,1,0],[1,2,3,2,1],[3,2,1,2,3],
+    [0,0,1,0,0],[4,4,3,4,4],[1,1,2,1,1],[3,3,2,3,3],[0,1,1,1,0],[4,3,3,3,4],
+    [0,1,0,1,0],[4,3,4,3,4],[1,2,1,2,1],[3,2,3,2,3],[0,2,4,2,0],
+    [2,1,0,1,2],[2,3,4,3,2],[1,0,1,0,1],[3,4,3,4,3],[2,0,2,4,2],
+  ],
+
+  bonus: {
+    freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
+
+    holdSpin: {
+      triggerCoins: 6,
+      respins: 3,
+      grid: { rows: 5, cols: 5 },
+
+      // Higher “event” jackpots for the sports theme
+      jackpots: { MINI: 75, MINOR: 300, MAJOR: 1500 },
+
+      progressive: {
+        seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },
+        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+        betScale: { baseBet: 1, maxMult: 50 }
+      },
+      meter: { enabled: true, threshold: 250 }
+    }
+  }
+},
+
+"arctic-fortune": {
+  name: "Arctic Fortune",
+  accent: "#60a5fa",
+  showLabels: false,
+  grid:{rows:5,cols:5},
+
+  symbols: {
+    W:  { name:"Ice Wolf", payout:{3:75,4:320,5:1700}, wild:true },
+
+    A:  { name:"Ice Crown", payout:{3:10,4:35,5:140} },
+    K:  { name:"Snow Owl",  payout:{3:8, 4:28,5:110} },
+    Q:  { name:"Crystal",   payout:{3:6, 4:22,5:90}  },
+    J:  { name:"Lantern",   payout:{3:5, 4:18,5:75}  },
+    T:  { name:"Pine",      payout:{3:4, 4:14,5:60}  },
+
+    S:  { name:"Aurora", payout:{3:2,4:10,5:50}, scatter:true },
+    B:  { name:"Glacier Bonus", payout:{}, bonus:true },
+    C:  { name:"Ice Crystal", payout:{}, coin:true },
+
+    MJ:  { name:"MINI",  payout:{}, jackpot:"MINI" },
+    MR:  { name:"MINOR", payout:{}, jackpot:"MINOR" },
+    MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
+  },
+
+  icons: {
+    W:"🐺",
+    A:"❄️", K:"🦉", Q:"💠", J:"🏮", T:"🌲",
+    S:"🌌",
+    B:"🏔️",
+    C:"🧊",
+    MJ:"💵", MR:"💳", MJ2:"👑",
+  },
+
+  // Higher coin presence + the freeze mechanic => strong “collector” feel.
+  weights: [
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:1.9, B:0.95, C:3.6, MJ:0.10, MR:0.05, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:1.9, B:0.95, C:3.6, MJ:0.10, MR:0.05, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:2.2, S:2.0, B:1.00, C:4.2, MJ:0.12, MR:0.06, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:1.9, B:0.95, C:3.6, MJ:0.10, MR:0.05, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.7, B:0.85, C:3.2, MJ:0.08, MR:0.04, MJ2:0.015 },
+  ],
+
+  biasPolicy: {
+    maxScatterBoost: 1.15,
+    maxBonusBoost:   0.75,
+    maxCoinBoost:    2.2,
+    betScale: 60,
+  },
+
+  // Reuse your standard 25 paylines for compatibility :contentReference[oaicite:2]{index=2}
+  paylines: [
+    [2,2,2,2,2],[1,1,1,1,1],[3,3,3,3,3],[0,0,0,0,0],[4,4,4,4,4],
+    [0,1,2,3,4],[4,3,2,1,0],[1,2,3,2,1],[3,2,1,2,3],
+    [0,0,1,0,0],[4,4,3,4,4],[1,1,2,1,1],[3,3,2,3,3],[0,1,1,1,0],[4,3,3,3,4],
+    [0,1,0,1,0],[4,3,4,3,4],[1,2,1,2,1],[3,2,3,2,3],[0,2,4,2,0],
+    [2,1,0,1,2],[2,3,4,3,2],[1,0,1,0,1],[3,4,3,4,3],[2,0,2,4,2],
+  ],
+
+  // NEW (optional): theme-specific spin behavior
+  mechanics: {
+    frozenCoins: {
+      enabled: true,
+      // chance each landed coin becomes “frozen” and persists into the next spin
+      freezeChance: 0.35,
+      // max spins a frozen coin can persist before it melts
+      maxHoldSpins: 1
+    }
+  },
+
+  bonus: {
+    freeSpins: { scatterNeeded: 3, awards: {3: 8, 4: 12, 5: 20} },
+    holdSpin: {
+      triggerCoins: 6,
+      respins: 3,
+      grid:{rows:5,cols:5},
+      jackpots:{ MINI:70, MINOR:275, MAJOR:1350 },
+      progressive: {
+        seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },
+        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+        betScale: { baseBet: 1, maxMult: 50 }
+      },
+      meter: { enabled: true, threshold: 250 }
+    }
+  }
+},
+"outlaw-riches": {
+  name: "Outlaw Riches",
+  accent: "#f59e0b",
+  showLabels: false,
+  grid:{rows:5,cols:5},
+
+  symbols: {
+    W:  { name:"Sheriff Star", payout:{3:70,4:320,5:1650}, wild:true },
+
+    A:  { name:"Hat",     payout:{3:10,4:35,5:140} },
+    K:  { name:"Boot",    payout:{3:8, 4:28,5:110} },
+    Q:  { name:"Cactus",  payout:{3:6, 4:22,5:90}  },
+    J:  { name:"Revolver",payout:{3:5, 4:18,5:75}  },
+    T:  { name:"Wagon",   payout:{3:4, 4:14,5:60}  },
+
+    S:  { name:"Sunset", payout:{3:2,4:10,5:50}, scatter:true },
+    B:  { name:"Duel Bonus", payout:{}, bonus:true },
+    C:  { name:"Gold Nugget", payout:{}, coin:true },
+
+    MJ:  { name:"MINI",  payout:{}, jackpot:"MINI" },
+    MR:  { name:"MINOR", payout:{}, jackpot:"MINOR" },
+    MJ2: { name:"MAJOR", payout:{}, jackpot:"MAJOR" },
+  },
+
+  icons: {
+    W:"⭐",
+    A:"🤠", K:"🥾", Q:"🌵", J:"🔫", T:"🛻",
+    S:"🌅",
+    B:"⚔️",
+    C:"🪙",
+    MJ:"💵", MR:"💳", MJ2:"👑",
+  },
+
+  // HIGH coin frequency machine
+  weights: [
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.7, B:0.95, C:4.2, MJ:0.11, MR:0.055, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.7, B:0.95, C:4.2, MJ:0.11, MR:0.055, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:2.0, S:1.8, B:1.0,  C:4.8, MJ:0.13, MR:0.065, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.9, S:1.7, B:0.95, C:4.2, MJ:0.11, MR:0.055, MJ2:0.02 },
+    { A:18, K:18, Q:16, J:14, T:14, W:1.8, S:1.5, B:0.85, C:3.9, MJ:0.09, MR:0.045, MJ2:0.015 },
+  ],
+
+  biasPolicy: {
+    maxScatterBoost: 1.05,
+    maxBonusBoost:   0.75,
+    maxCoinBoost:    2.6,   // biggest coin push of your pack
+    betScale: 55,
+  },
+
+  paylines: [
+    [2,2,2,2,2],[1,1,1,1,1],[3,3,3,3,3],[0,0,0,0,0],[4,4,4,4,4],
+    [0,1,2,3,4],[4,3,2,1,0],[1,2,3,2,1],[3,2,1,2,3],
+    [0,0,1,0,0],[4,4,3,4,4],[1,1,2,1,1],[3,3,2,3,3],[0,1,1,1,0],[4,3,3,3,4],
+    [0,1,0,1,0],[4,3,4,3,4],[1,2,1,2,1],[3,2,3,2,3],[0,2,4,2,0],
+    [2,1,0,1,2],[2,3,4,3,2],[1,0,1,0,1],[3,4,3,4,3],[2,0,2,4,2],
+  ],
+
+  // Cosmetic-only hook: if your UI wants to show “two respins at once”
+  mechanics: {
+    duelMode: { enabled: true } // purely for UI flair unless you wire it deeper
+  },
+
+  bonus: {
+    freeSpins: { scatterNeeded: 3, awards: {3: 6, 4: 10, 5: 15} },
+
+    holdSpin: {
+      triggerCoins: 6,
+      respins: 3,
+      grid:{rows:5,cols:5},
+
+      // Slightly richer defaults (fits “coin-forward” identity)
+      jackpots:{ MINI:80, MINOR:320, MAJOR:1600 },
+
+      progressive: {
+        seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },
+        rate: { MINI: 0.005, MINOR: 0.002, MAJOR: 0.001 },
+        betScale: { baseBet: 1, maxMult: 50 }
+      },
+      meter: { enabled: true, threshold: 250 }
+    }
+  }
+},
 
 };
 

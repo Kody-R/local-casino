@@ -1313,3 +1313,8 @@ html, body { overflow-x: hidden; }
   opacity: .35;
   pointer-events:none;
 }
+
+.frozenCell {
+  box-shadow: 0 0 12px #66ccff;
+  border: 2px solid #99e6ff;
+}
