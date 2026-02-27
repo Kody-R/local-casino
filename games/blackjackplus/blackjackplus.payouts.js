@@ -1,14 +1,14 @@
 // games/blackjackplus/blackjackplus.payouts.js
 const DEFAULT = {
-  blackjackPays: "3:2",     // "3:2" or "6:5"
-  dealerHitsSoft17: false,  // false = stand on soft 17
+  blackjackPays: "3:2", // "3:2" or "6:5"
+  dealerHitsSoft17: false, // false = stand on soft 17
   allowDoubleAfterSplit: true,
 
   // Poker side bet: Player(2) + Dealer upcard (3-card poker)
   side3: {
     enabled: true,
-    paytable: { SF: 40, TK: 30, ST: 6, FL: 3, PR: 1 }
-  }
+    paytable: { SF: 40, TK: 30, ST: 6, FL: 3, PR: 1 },
+  },
 };
 
 export function payoutsTemplateHTML() {
@@ -65,7 +65,8 @@ export async function loadBJPayouts(store) {
     bindInputs(root) {
       root.querySelector("#bj_pays").value = value.blackjackPays ?? "3:2";
       root.querySelector("#bj_h17").checked = !!value.dealerHitsSoft17;
-      root.querySelector("#bj_das").checked = value.allowDoubleAfterSplit !== false;
+      root.querySelector("#bj_das").checked =
+        value.allowDoubleAfterSplit !== false;
 
       const enabled = value.side3?.enabled !== false;
       root.querySelector("#bj_side3_enabled").checked = enabled;
@@ -79,7 +80,7 @@ export async function loadBJPayouts(store) {
       syncSide3UI(root);
       renderSide3Preview(root);
       wireSide3Events(root);
-    }
+    },
   };
 }
 
@@ -106,8 +107,8 @@ export function readBJPayoutsFromUI(root) {
         ST: num(root.querySelector("#bj_s3_st").value),
         FL: num(root.querySelector("#bj_s3_fl").value),
         PR: num(root.querySelector("#bj_s3_pr").value),
-      }
-    }
+      },
+    },
   };
 }
 
@@ -149,11 +150,16 @@ function wireSide3Events(root) {
   root.__bjSide3Wired = true;
 
   const onAnyChange = () => renderSide3Preview(root);
-  const toggle = () => { syncSide3UI(root); renderSide3Preview(root); };
+  const toggle = () => {
+    syncSide3UI(root);
+    renderSide3Preview(root);
+  };
 
   root.querySelector("#bj_side3_enabled")?.addEventListener("change", toggle);
 
-  ["#bj_s3_sf","#bj_s3_tk","#bj_s3_st","#bj_s3_fl","#bj_s3_pr"].forEach(sel => {
-    root.querySelector(sel)?.addEventListener("input", onAnyChange);
-  });
+  ["#bj_s3_sf", "#bj_s3_tk", "#bj_s3_st", "#bj_s3_fl", "#bj_s3_pr"].forEach(
+    (sel) => {
+      root.querySelector(sel)?.addEventListener("input", onAnyChange);
+    },
+  );
 }

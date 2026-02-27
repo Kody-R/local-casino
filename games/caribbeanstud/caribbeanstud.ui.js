@@ -2,11 +2,10 @@
 import {
   newCaribbeanStudRound,
   settleCaribbeanStud,
-  formatHandName
+  formatHandName,
 } from "./caribbeanstud.engine.js";
 
 import { renderCards, renderCardBack } from "../../core/cards.js";
-
 
 export function mountCaribbeanStud(rootEl, store) {
   rootEl.innerHTML = `
@@ -69,28 +68,26 @@ export function mountCaribbeanStud(rootEl, store) {
     resultEl.textContent = "";
   }
 
-function renderDealer(cards, { hideHole = true } = {}) {
-  dealerEl.innerHTML = "";
+  function renderDealer(cards, { hideHole = true } = {}) {
+    dealerEl.innerHTML = "";
 
-  const row = document.createElement("div");
-  row.className = "cs-cards";
-  dealerEl.appendChild(row);
+    const row = document.createElement("div");
+    row.className = "cs-cards";
+    dealerEl.appendChild(row);
 
-  if (hideHole) {
-    const up = document.createElement("div");
-    row.appendChild(up);
-    renderCards(up, cards.slice(0, 1), false);
+    if (hideHole) {
+      const up = document.createElement("div");
+      row.appendChild(up);
+      renderCards(up, cards.slice(0, 1), false);
 
-    const backs = document.createElement("div");
-    backs.className = "cs-backs";
-    row.appendChild(backs);
-    renderCardBack(backs, 4);
-  } else {
-    renderCards(row, cards, false);
+      const backs = document.createElement("div");
+      backs.className = "cs-backs";
+      row.appendChild(backs);
+      renderCardBack(backs, 4);
+    } else {
+      renderCards(row, cards, false);
+    }
   }
-}
-
-
 
   function setDecisionEnabled(on) {
     foldBtn.disabled = !on;
@@ -104,8 +101,14 @@ function renderDealer(cards, { hideHole = true } = {}) {
 
   function onDeal() {
     ante = Math.floor(Number(anteEl.value || 0));
-    if (ante < 1) { msgEl.textContent = "Ante must be at least 1."; return; }
-    if (store.balance < ante) { msgEl.textContent = "Not enough balance."; return; }
+    if (ante < 1) {
+      msgEl.textContent = "Ante must be at least 1.";
+      return;
+    }
+    if (store.balance < ante) {
+      msgEl.textContent = "Not enough balance.";
+      return;
+    }
 
     // take ante immediately
     store.balance -= ante;
@@ -167,9 +170,9 @@ function renderDealer(cards, { hideHole = true } = {}) {
       // Push: return both stakes
       // Dealer win: return nothing
       if (s.outcome === "PLAYER_WIN") {
-        credit = (ante + ante) + (callBet + s.callWin); // ante returned + ante win, call returned + call win
+        credit = ante + ante + (callBet + s.callWin); // ante returned + ante win, call returned + call win
       } else if (s.outcome === "DEALER_NO_QUALIFY") {
-        credit = (ante + ante) + callBet; // ante returned + ante win, call returned
+        credit = ante + ante + callBet; // ante returned + ante win, call returned
       } else if (s.outcome === "PUSH") {
         credit = ante + callBet; // return stakes
       } else {

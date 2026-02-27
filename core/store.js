@@ -21,27 +21,31 @@ export async function initStore() {
     db,
     currentPlayerId: null,
 
-    async listPlayers() { return getAll(db, "players"); },
+    async listPlayers() {
+      return getAll(db, "players");
+    },
     async createPlayer(name) {
       const player = { id: uuid(), name, createdAt: Date.now() };
       await put(db, "players", player);
       return player;
     },
-    async selectPlayer(playerId) { store.currentPlayerId = playerId; },
+    async selectPlayer(playerId) {
+      store.currentPlayerId = playerId;
+    },
 
     async ledgerRows(playerId) {
       return queryIndex(db, "ledger", "by_player", playerId);
     },
     async balance(playerId) {
       const rows = await store.ledgerRows(playerId);
-      return rows.reduce((s,r)=>s+r.amount,0);
+      return rows.reduce((s, r) => s + r.amount, 0);
     },
 
     async getChips(playerId) {
       return store.balance(playerId);
     },
 
-    async addLedger(reason, amount, roundId=null) {
+    async addLedger(reason, amount, roundId = null) {
       if (!store.currentPlayerId) throw new Error("No player selected.");
       await put(db, "ledger", {
         id: uuid(),
@@ -49,7 +53,7 @@ export async function initStore() {
         roundId,
         reason,
         amount,
-        ts: Date.now()
+        ts: Date.now(),
       });
     },
 
@@ -61,7 +65,7 @@ export async function initStore() {
         gameCode,
         startedAt: Date.now(),
         endedAt: null,
-        status: "IN_PROGRESS"
+        status: "IN_PROGRESS",
       };
       await put(db, "rounds", round);
       return round;
@@ -71,15 +75,15 @@ export async function initStore() {
       if (!store.currentPlayerId) throw new Error("No player selected.");
       const bal = await store.balance(store.currentPlayerId);
       if (amount < 0) throw new Error("Bet must be >= 0.");
-        if (amount === 0) {
-          // record bet with 0 amount but no ledger change
-          await put(db, "bets", { id: uuid(), roundId, betType, amount: 0 });
-          return;
-        }
+      if (amount === 0) {
+        // record bet with 0 amount but no ledger change
+        await put(db, "bets", { id: uuid(), roundId, betType, amount: 0 });
+        return;
+      }
 
       if (bal < amount) throw new Error("Not enough chips.");
 
-      await withTx(db, ["bets","ledger"], "readwrite", (s) => {
+      await withTx(db, ["bets", "ledger"], "readwrite", (s) => {
         s.bets.put({ id: uuid(), roundId, betType, amount });
         s.ledger.put({
           id: uuid(),
@@ -87,7 +91,7 @@ export async function initStore() {
           roundId,
           reason: `BET:${betType}`,
           amount: -amount,
-          ts: Date.now()
+          ts: Date.now(),
         });
       });
     },
@@ -100,11 +104,13 @@ export async function initStore() {
         outcome,
         payoutAmount,
         returnedStake,
-        ts: Date.now()
+        ts: Date.now(),
       });
 
-      if (payoutAmount > 0) await store.addLedger(`PAYOUT:${betType}`, payoutAmount, roundId);
-      if (returnedStake > 0) await store.addLedger(`RETURN:${betType}`, returnedStake, roundId);
+      if (payoutAmount > 0)
+        await store.addLedger(`PAYOUT:${betType}`, payoutAmount, roundId);
+      if (returnedStake > 0)
+        await store.addLedger(`RETURN:${betType}`, returnedStake, roundId);
     },
 
     async closeRound(roundId) {
@@ -114,8 +120,12 @@ export async function initStore() {
       await put(db, "rounds", r);
     },
 
-    async getSetting(key) { return (await get(db, "settings", key))?.value; },
-    async setSetting(key, value) { await put(db, "settings", { key, value }); },
+    async getSetting(key) {
+      return (await get(db, "settings", key))?.value;
+    },
+    async setSetting(key, value) {
+      await put(db, "settings", { key, value });
+    },
   };
 
   return store;
@@ -143,7 +153,7 @@ export async function renderPlayerPanel(store) {
 
   async function refreshPlayers() {
     const players = await store.listPlayers();
-    players.sort((a,b)=>a.name.localeCompare(b.name));
+    players.sort((a, b) => a.name.localeCompare(b.name));
     el.playerSelect.innerHTML = "";
     for (const p of players) {
       const opt = document.createElement("option");
@@ -159,8 +169,8 @@ export async function renderPlayerPanel(store) {
       return;
     }
     const rows = await store.ledgerRows(store.currentPlayerId);
-    rows.sort((a,b)=>b.ts-a.ts);
-    const latest = rows.slice(0,20);
+    rows.sort((a, b) => b.ts - a.ts);
+    const latest = rows.slice(0, 20);
     el.ledgerList.innerHTML = "";
 
     for (const r of latest) {
@@ -171,12 +181,14 @@ export async function renderPlayerPanel(store) {
       reason.innerHTML = `<div class="mono">${when}</div><div class="reason">${r.reason}</div>`;
       const meta = document.createElement("div");
       meta.className = "mono";
-      meta.textContent = r.roundId ? r.roundId.slice(0,8) : "";
+      meta.textContent = r.roundId ? r.roundId.slice(0, 8) : "";
       const amt = document.createElement("div");
-      amt.className = `amt ${r.amount>=0?"pos":"neg"}`;
-      amt.textContent = (r.amount>=0?"+":"") + fmt(r.amount);
+      amt.className = `amt ${r.amount >= 0 ? "pos" : "neg"}`;
+      amt.textContent = (r.amount >= 0 ? "+" : "") + fmt(r.amount);
 
-      div.appendChild(reason); div.appendChild(meta); div.appendChild(amt);
+      div.appendChild(reason);
+      div.appendChild(meta);
+      div.appendChild(amt);
       el.ledgerList.appendChild(div);
     }
   }
@@ -190,14 +202,21 @@ export async function renderPlayerPanel(store) {
       return;
     }
     const players = await store.listPlayers();
-    const p = players.find(x => x.id === store.currentPlayerId);
+    const p = players.find((x) => x.id === store.currentPlayerId);
     el.selectedName.textContent = p?.name ?? "—";
     const bal = await store.balance(store.currentPlayerId);
     el.chipBalance.textContent = fmt(bal);
     el.statNet.textContent = fmt(bal);
 
-    const rounds = await queryIndex(store.db, "rounds", "by_player", store.currentPlayerId);
-    el.statHands.textContent = fmt(rounds.filter(r=>r.status==="SETTLED").length);
+    const rounds = await queryIndex(
+      store.db,
+      "rounds",
+      "by_player",
+      store.currentPlayerId,
+    );
+    el.statHands.textContent = fmt(
+      rounds.filter((r) => r.status === "SETTLED").length,
+    );
   }
 
   el.btnCreate.addEventListener("click", async () => {
@@ -223,7 +242,8 @@ export async function renderPlayerPanel(store) {
   el.btnGrant.addEventListener("click", async () => {
     try {
       const amt = Math.floor(Number(el.grantAmount.value));
-      if (!Number.isFinite(amt) || amt <= 0) throw new Error("Enter a positive number.");
+      if (!Number.isFinite(amt) || amt <= 0)
+        throw new Error("Enter a positive number.");
       await store.addLedger("GRANT", amt, null);
       el.grantAmount.value = "";
       await refreshHeader();

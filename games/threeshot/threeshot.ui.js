@@ -55,68 +55,86 @@ export function mountThreeShot(rootEl, store) {
     `;
 
     const holeEl = rootEl.querySelector("#tsHole");
-const commEl = rootEl.querySelector("#tsComm");
-const resEl  = rootEl.querySelector("#tsResult");
+    const commEl = rootEl.querySelector("#tsComm");
+    const resEl = rootEl.querySelector("#tsResult");
 
-// Face-down rules
-const holeDown = (state.phase === "BETTING");
-const commDown = (state.phase !== "RESULT");
+    // Face-down rules
+    const holeDown = state.phase === "BETTING";
+    const commDown = state.phase !== "RESULT";
 
-// Default: no highlight
-let holeHi = null;
-let commHi = null;
+    // Default: no highlight
+    let holeHi = null;
+    let commHi = null;
 
-if (state.phase === "RESULT" && state.results) {
-  // Highlight logic: hole indices are 0,1. community indices are 0,1,2
-  if (revealStep === 1) { holeHi = new Set([0,1]); commHi = new Set([0]); }
-  if (revealStep === 2) { holeHi = new Set([0,1]); commHi = new Set([1]); }
-  if (revealStep === 3) { holeHi = new Set([0,1]); commHi = new Set([2]); }
-  if (revealStep === 4) { holeHi = new Set([0,1]); commHi = new Set([0,1,2]); }
-}
+    if (state.phase === "RESULT" && state.results) {
+      // Highlight logic: hole indices are 0,1. community indices are 0,1,2
+      if (revealStep === 1) {
+        holeHi = new Set([0, 1]);
+        commHi = new Set([0]);
+      }
+      if (revealStep === 2) {
+        holeHi = new Set([0, 1]);
+        commHi = new Set([1]);
+      }
+      if (revealStep === 3) {
+        holeHi = new Set([0, 1]);
+        commHi = new Set([2]);
+      }
+      if (revealStep === 4) {
+        holeHi = new Set([0, 1]);
+        commHi = new Set([0, 1, 2]);
+      }
+    }
 
-renderCards(holeEl, state.hole, holeDown, { highlightIdx: holeHi, dimOthers: true });
-renderCards(commEl, state.community, commDown, { highlightIdx: commHi, dimOthers: true });
+    renderCards(holeEl, state.hole, holeDown, {
+      highlightIdx: holeHi,
+      dimOthers: true,
+    });
+    renderCards(commEl, state.community, commDown, {
+      highlightIdx: commHi,
+      dimOthers: true,
+    });
 
-// Results text
-resEl.innerHTML = "";
-if (state.phase === "RESULT" && state.results) {
-  const r = state.results;
+    // Results text
+    resEl.innerHTML = "";
+    if (state.phase === "RESULT" && state.results) {
+      const r = state.results;
 
-  const shotLine = (i) => {
-    const s = r.shots[i];
-    if (!s.bet) return `<div class="mono">${s.label}: no bet</div>`;
-    const profit = (s.win > 0) ? (s.win - s.bet) : 0;
-    return `<div class="mono">${s.label}: ${s.eval.name} • bet ${s.bet} • pays ${s.mult}:1 • profit ${profit}</div>`;
-  };
+      const shotLine = (i) => {
+        const s = r.shots[i];
+        if (!s.bet) return `<div class="mono">${s.label}: no bet</div>`;
+        const profit = s.win > 0 ? s.win - s.bet : 0;
+        return `<div class="mono">${s.label}: ${s.eval.name} • bet ${s.bet} • pays ${s.mult}:1 • profit ${profit}</div>`;
+      };
 
-  const five = r.five;
-  const fiveLine = () => {
-    if (!five.bet) return `<div class="mono">5 Shot: no bet</div>`;
-    const profit = (five.win > 0) ? (five.win - five.bet) : 0;
-    return `<div class="mono">5 Shot: ${five.eval.name} • bet ${five.bet} • pays ${five.mult}:1 • profit ${profit}</div>`;
-  };
+      const five = r.five;
+      const fiveLine = () => {
+        if (!five.bet) return `<div class="mono">5 Shot: no bet</div>`;
+        const profit = five.win > 0 ? five.win - five.bet : 0;
+        return `<div class="mono">5 Shot: ${five.eval.name} • bet ${five.bet} • pays ${five.mult}:1 • profit ${profit}</div>`;
+      };
 
-  if (revealStep === 0) {
-    resEl.innerHTML = `<div class="mono">Click “Show Winnings” to step through results.</div>`;
-  } else if (revealStep === 1) {
-    resEl.innerHTML = shotLine(0);
-  } else if (revealStep === 2) {
-    resEl.innerHTML = shotLine(1);
-  } else if (revealStep === 3) {
-    resEl.innerHTML = shotLine(2);
-  } else if (revealStep === 4) {
-    resEl.innerHTML = fiveLine();
-  } else {
-    resEl.innerHTML = `
+      if (revealStep === 0) {
+        resEl.innerHTML = `<div class="mono">Click “Show Winnings” to step through results.</div>`;
+      } else if (revealStep === 1) {
+        resEl.innerHTML = shotLine(0);
+      } else if (revealStep === 2) {
+        resEl.innerHTML = shotLine(1);
+      } else if (revealStep === 3) {
+        resEl.innerHTML = shotLine(2);
+      } else if (revealStep === 4) {
+        resEl.innerHTML = fiveLine();
+      } else {
+        resEl.innerHTML = `
       ${shotLine(0)}
       ${shotLine(1)}
       ${shotLine(2)}
       ${fiveLine()}
       <div style="margin-top:8px;"><b>Net:</b> ${r.lastNet}</div>
     `;
-  }
-}
-    
+      }
+    }
+
     bindEvents();
   }
 
@@ -178,10 +196,10 @@ if (state.phase === "RESULT" && state.results) {
     });
 
     rootEl.querySelector("#btnReveal")?.addEventListener("click", async () => {
-  if (state.phase !== "RESULT") return;
-  revealStep = Math.min(revealStep + 1, 5);
-  await paint();
-});
+      if (state.phase !== "RESULT") return;
+      revealStep = Math.min(revealStep + 1, 5);
+      await paint();
+    });
   }
 
   async function settleAllBets() {
@@ -198,7 +216,7 @@ if (state.phase === "RESULT" && state.results) {
         shot.label.replace(" ", "").toUpperCase(),
         shot.eval.name,
         payout,
-        returned
+        returned,
       );
     }
 
@@ -211,7 +229,7 @@ if (state.phase === "RESULT" && state.results) {
         "FIVESHOT",
         r.five.eval.name,
         payout,
-        returned
+        returned,
       );
     }
 

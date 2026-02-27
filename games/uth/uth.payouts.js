@@ -6,7 +6,7 @@ const DEFAULT = {
 
   // Trips is independent: based on player's final 7-card hand
   // Typical-style defaults (edit as you like)
-  trips: { ST: 1, TK: 3, STFL: 0, FL: 4, FH: 8, FK: 30, SF: 40, RF: 50 }
+  trips: { ST: 1, TK: 3, STFL: 0, FL: 4, FH: 8, FK: 30, SF: 40, RF: 50 },
 };
 
 // Normalize 5-card codes from eval5 into what we use for payouts
@@ -63,7 +63,7 @@ export async function loadUTHPayouts(store) {
       root.querySelector("#uth_tr_fk").value = value.trips.FK ?? 0;
       root.querySelector("#uth_tr_sf").value = value.trips.SF ?? 0;
       root.querySelector("#uth_tr_rf").value = value.trips.RF ?? 0;
-    }
+    },
   };
 }
 
@@ -86,7 +86,7 @@ export async function saveUTHPayouts(store, root) {
       FK: Number(root.querySelector("#uth_tr_fk").value || 0),
       SF: Number(root.querySelector("#uth_tr_sf").value || 0),
       RF: Number(root.querySelector("#uth_tr_rf").value || 0),
-    }
+    },
   };
 
   await store.setSetting(key, value);

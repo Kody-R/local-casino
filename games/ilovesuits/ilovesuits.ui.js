@@ -1,10 +1,33 @@
 // games/ilovesuits/ilovesuits.ui.js
 import { renderCards } from "../../core/cards.js";
-import { dealILSRound, allowedPlayMultipliers, foldILS, playILS } from "./ilovesuits.engine.js";
-import { loadILSPayouts, saveILSPayouts, payoutsTemplateHTML } from "./ilovesuits.payouts.js";
+import {
+  dealILSRound,
+  allowedPlayMultipliers,
+  foldILS,
+  playILS,
+} from "./ilovesuits.engine.js";
+import {
+  loadILSPayouts,
+  saveILSPayouts,
+  payoutsTemplateHTML,
+} from "./ilovesuits.payouts.js";
 
-const SUIT_SYMBOL = { S:"♠", H:"♥", D:"♦", C:"♣" };
-const VAL_TO_RANK = { 14:"A",13:"K",12:"Q",11:"J",10:"10",9:"9",8:"8",7:"7",6:"6",5:"5",4:"4",3:"3",2:"2" };
+const SUIT_SYMBOL = { S: "♠", H: "♥", D: "♦", C: "♣" };
+const VAL_TO_RANK = {
+  14: "A",
+  13: "K",
+  12: "Q",
+  11: "J",
+  10: "10",
+  9: "9",
+  8: "8",
+  7: "7",
+  6: "6",
+  5: "5",
+  4: "4",
+  3: "3",
+  2: "2",
+};
 
 function formatFlushText(cards7, flushInfo) {
   if (!flushInfo || flushInfo.len === 0 || !flushInfo.suit) return "—";
@@ -12,12 +35,11 @@ function formatFlushText(cards7, flushInfo) {
 
   // show up to 7 cards in that suit, high to low
   const ranks = flushInfo.idxSorted
-    .map(idx => cards7[idx])
-    .map(c => (c.r === "T" ? "10" : c.r));
+    .map((idx) => cards7[idx])
+    .map((c) => (c.r === "T" ? "10" : c.r));
 
   return `${suitSym} ${ranks.join("-")}`;
 }
-
 
 export function mountILoveSuits(mountEl, store) {
   mountEl.innerHTML = `
@@ -125,12 +147,20 @@ export function mountILoveSuits(mountEl, store) {
 
       const payouts = (await loadILSPayouts(store)).value;
 
-      const { roundId, live } = await dealILSRound(store, { ante, flushRush, superFlushRush, payouts });
+      const { roundId, live } = await dealILSRound(store, {
+        ante,
+        flushRush,
+        superFlushRush,
+        payouts,
+      });
       state.roundId = roundId;
       state.live = live;
 
       const hiP = new Set(live.pFlush.idxSorted); // highlight all suited cards
-      renderCards(el.p, live.player, false, { highlightIdx: hiP, dimOthers: true });
+      renderCards(el.p, live.player, false, {
+        highlightIdx: hiP,
+        dimOthers: true,
+      });
       renderCards(el.d, live.dealer, true); // hide dealer until finish
 
       const allowed = allowedPlayMultipliers(live.pFlush.len);
@@ -139,36 +169,40 @@ export function mountILoveSuits(mountEl, store) {
         `Best Flush: ${formatFlushText(live.player, live.pFlush)}  ` +
         `(${live.pFlush.len}-card).  Straight-flush run: ${live.pStraightFlushLen}.`;
 
-
       el.dinfo.textContent = `Dealer shown after resolution.`;
 
       if (allowed.length === 0) {
         el.result.textContent = "No 3-card flush";
         el.detail.textContent = "You must fold.";
         setActions([
-          { label: "Fold", kind: "danger", onClick: async () => finishFold() }
+          { label: "Fold", kind: "danger", onClick: async () => finishFold() },
         ]);
       } else {
         el.result.textContent = "Choose Play or Fold";
-        el.detail.textContent = `Allowed Play: ${allowed.map(x=>`${x}x`).join(", ")}.`;
+        el.detail.textContent = `Allowed Play: ${allowed.map((x) => `${x}x`).join(", ")}.`;
         setActions([
           { label: "Fold", kind: "danger", onClick: async () => finishFold() },
-          ...allowed.map(mult => ({
+          ...allowed.map((mult) => ({
             label: `Play ${mult}x`,
             kind: "ok",
-            onClick: async () => finishPlay(mult)
-          }))
+            onClick: async () => finishPlay(mult),
+          })),
         ]);
       }
 
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   });
 
   async function finishFold() {
     const out = await foldILS(store, state.roundId, state.live);
     const hiD = new Set(state.live.dFlush.idxSorted);
-    renderCards(el.d, state.live.dealer, false, { highlightIdx: hiD, dimOthers: true });
+    renderCards(el.d, state.live.dealer, false, {
+      highlightIdx: hiD,
+      dimOthers: true,
+    });
 
     el.dinfo.textContent =
       `Dealer Flush: ${formatFlushText(state.live.dealer, state.live.dFlush)}  ` +
@@ -177,7 +211,8 @@ export function mountILoveSuits(mountEl, store) {
     el.result.textContent = out.title;
     el.detail.textContent = out.detail;
     setActions([]);
-    state.roundId = null; state.live = null;
+    state.roundId = null;
+    state.live = null;
     await store.uiRefresh?.();
   }
 
@@ -185,8 +220,11 @@ export function mountILoveSuits(mountEl, store) {
     try {
       const out = await playILS(store, state.roundId, state.live, mult);
       const hiD = new Set(state.live.dFlush.idxSorted);
-      renderCards(el.d, state.live.dealer, false, { highlightIdx: hiD, dimOthers: true });
-          
+      renderCards(el.d, state.live.dealer, false, {
+        highlightIdx: hiD,
+        dimOthers: true,
+      });
+
       el.dinfo.textContent =
         `Dealer Flush: ${formatFlushText(state.live.dealer, state.live.dFlush)}  ` +
         `(${state.live.dFlush.len}-card).  Qualifies: ${state.live.dealerQualifies ? "Yes" : "No"}.`;
@@ -194,8 +232,11 @@ export function mountILoveSuits(mountEl, store) {
       el.result.textContent = out.title;
       el.detail.textContent = out.detail;
       setActions([]);
-      state.roundId = null; state.live = null;
+      state.roundId = null;
+      state.live = null;
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 }

@@ -4,7 +4,7 @@ import { makeDeck, shuffle } from "../../core/cards.js";
 export function makeDJDeck() {
   // 52 + 1 Joker (PDF)
   const deck = makeDeck();
-  deck.push({ r:"JOKER", joker:true });
+  deck.push({ r: "JOKER", joker: true });
   return deck;
 }
 
@@ -23,10 +23,22 @@ export function newDJState() {
   };
 }
 
-export function dealDJ(state, ante, trips=0, badbeat=0) {
+export function dealDJ(state, ante, trips = 0, badbeat = 0) {
   state.deck = shuffle(makeDJDeck());
-  state.player = [state.deck.pop(), state.deck.pop(), state.deck.pop(), state.deck.pop(), state.deck.pop()];
-  state.dealer = [state.deck.pop(), state.deck.pop(), state.deck.pop(), state.deck.pop(), state.deck.pop()];
+  state.player = [
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+  ];
+  state.dealer = [
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+    state.deck.pop(),
+  ];
 
   state.ante = ante;
   state.blind = ante;

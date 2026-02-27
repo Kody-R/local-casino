@@ -11,7 +11,7 @@ function dealerQualifies(bestDealerEval) {
 
 function playerHasStraightPlus(bestPlayerEval) {
   // Straight+ codes include ST, FL, FH, FK, SF, RF
-  return ["ST","FL","FH","FK","SF","RF"].includes(bestPlayerEval.code);
+  return ["ST", "FL", "FH", "FK", "SF", "RF"].includes(bestPlayerEval.code);
 }
 
 export async function dealUTHRound(store, { ante, trips, payouts }) {
@@ -42,15 +42,15 @@ export async function dealUTHRound(store, { ante, trips, payouts }) {
       board,
       // reveal control
       flopRevealed: false,
-      riverRevealed: false
-    }
+      riverRevealed: false,
+    },
   };
 }
 
 export async function betPreflop(store, roundId, live, mult /*3 or 4*/) {
   // after hole cards: check or bet 3x/4x :contentReference[oaicite:8]{index=8}
   if (live.street !== "PREFLOP") throw new Error("Not preflop.");
-  if (![3,4].includes(mult)) throw new Error("Preflop bet must be 3x or 4x.");
+  if (![3, 4].includes(mult)) throw new Error("Preflop bet must be 3x or 4x.");
 
   const amt = live.ante * mult;
   await store.placeBet(roundId, "PLAY", amt);
@@ -123,7 +123,14 @@ export async function resolveUTH(store, roundId, live) {
   // Trips resolves independent
   if (live.trips > 0) {
     const mult = tripsMult(live.payouts, pBest.code);
-    if (mult > 0) await store.settle(roundId, "TRIPS", "WIN", mult * live.trips, live.trips);
+    if (mult > 0)
+      await store.settle(
+        roundId,
+        "TRIPS",
+        "WIN",
+        mult * live.trips,
+        live.trips,
+      );
     else await store.settle(roundId, "TRIPS", "LOSE", 0, 0);
   }
 
@@ -153,7 +160,13 @@ export async function resolveUTH(store, roundId, live) {
     // BLIND: pays only if player wins + Straight+; otherwise pushes :contentReference[oaicite:13]{index=13}
     if (cmp > 0 && playerHasStraightPlus(pBest)) {
       const mult = blindMult(live.payouts, pBest.code);
-      await store.settle(roundId, "BLIND", "WIN", mult * live.blind, live.blind);
+      await store.settle(
+        roundId,
+        "BLIND",
+        "WIN",
+        mult * live.blind,
+        live.blind,
+      );
     } else {
       await store.settle(roundId, "BLIND", "PUSH", 0, live.blind);
     }
@@ -169,7 +182,13 @@ export async function resolveUTH(store, roundId, live) {
       // Blind rules (only pays if Straight+; otherwise push) :contentReference[oaicite:15]{index=15}
       if (playerHasStraightPlus(pBest)) {
         const mult = blindMult(live.payouts, pBest.code);
-        await store.settle(roundId, "BLIND", "WIN", mult * live.blind, live.blind);
+        await store.settle(
+          roundId,
+          "BLIND",
+          "WIN",
+          mult * live.blind,
+          live.blind,
+        );
       } else {
         await store.settle(roundId, "BLIND", "PUSH", 0, live.blind);
       }

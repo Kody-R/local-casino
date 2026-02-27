@@ -1,98 +1,106 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Local Casino</title>
-  <link rel="stylesheet" href="./styles.css" />
-</head>
-<body>
-  <header class="header">
-    <h1>Local Casino (Local Storage)</h1>
-    <p class="sub">Players, chips, and stats stored locally via IndexedDB.</p>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local Casino</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>Local Casino (Local Storage)</h1>
+      <p class="sub">Players, chips, and stats stored locally via IndexedDB.</p>
+    </header>
 
-  <main class="grid">
-    <section class="card">
-      <h2>Player</h2>
+    <main class="grid">
+      <section class="card">
+        <h2>Player</h2>
 
-      <div class="row">
-        <input id="newName" placeholder="New player name" autocomplete="off" />
-        <button id="btnCreate">Create</button>
-      </div>
-
-      <div class="row">
-        <select id="playerSelect"></select>
-        <button id="btnSelect">Select</button>
-      </div>
-
-      <div class="kpi">
-        <div>
-          <div class="label">Selected Player</div>
-          <div id="selectedName" class="value">—</div>
+        <div class="row">
+          <input
+            id="newName"
+            placeholder="New player name"
+            autocomplete="off"
+          />
+          <button id="btnCreate">Create</button>
         </div>
-        <div>
-          <div class="label">Chips</div>
-          <div id="chipBalance" class="value">—</div>
+
+        <div class="row">
+          <select id="playerSelect"></select>
+          <button id="btnSelect">Select</button>
         </div>
-      </div>
 
-      <div class="row">
-        <input id="grantAmount" type="number" min="1" step="1" placeholder="Grant chips (e.g., 1000)" />
-        <button id="btnGrant">Grant</button>
-      </div>
-            <hr class="hr" />
-
-      <h3>Quick Stats</h3>
-      <div class="kpi">
-        <div>
-          <div class="label">Hands Played</div>
-          <div id="statHands" class="value">—</div>
+        <div class="kpi">
+          <div>
+            <div class="label">Selected Player</div>
+            <div id="selectedName" class="value">—</div>
+          </div>
+          <div>
+            <div class="label">Chips</div>
+            <div id="chipBalance" class="value">—</div>
+          </div>
         </div>
-        <div>
-          <div class="label">Net (All Time)</div>
-          <div id="statNet" class="value">—</div>
+
+        <div class="row">
+          <input
+            id="grantAmount"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Grant chips (e.g., 1000)"
+          />
+          <button id="btnGrant">Grant</button>
         </div>
-      </div>
+        <hr class="hr" />
 
-      <h3>Ledger (latest 20)</h3>
-      <div id="ledgerList" class="ledger"></div>
+        <h3>Quick Stats</h3>
+        <div class="kpi">
+          <div>
+            <div class="label">Hands Played</div>
+            <div id="statHands" class="value">—</div>
+          </div>
+          <div>
+            <div class="label">Net (All Time)</div>
+            <div id="statNet" class="value">—</div>
+          </div>
+        </div>
 
-    </section>
+        <h3>Ledger (latest 20)</h3>
+        <div id="ledgerList" class="ledger"></div>
+      </section>
 
-    <section class="card">
-      <div class="row">
-        <select id="gamePicker">
-          <option value="threecard">3 Card Poker</option>
-          <option value="threeshot">3 Shot Poker</option>
-          <option value="aroundtheworld">Around the World</option>
-          <option value="baccarat">Baccarat</option>
-          <option value="blackjackplus">Blackjack Plus</option>  
-          <option value="bonusbowling">Bonus Bowling</option>
-          <option value="caribbeanstud">Caribbean Stud</option>
-          <option value="crazy4">Crazy 4 Poker</option>
-          <option value="djwild">DJ Wild</option>
-          <option value="horserace">Horse Racing</option>
-          <option value="ilovesuits">I Luv Suits Poker</option>
-          <option value="missstud">Mississippi Stud</option>
-          <option value="paigow">Pai Gow Poker</option>
-          <option value="roulette">Roulette</option>
-          <option value="slots">Slots</option>
-          <option value="spanish21">Spanish 21</option>
-          <option value="uth">Ultimate Texas Hold’em</option>
-        </select>
-        <button id="btnLoadGame">Load Game</button>
-      </div>
+      <section class="card">
+        <div class="row">
+          <select id="gamePicker">
+            <option value="threecard">3 Card Poker</option>
+            <option value="threeshot">3 Shot Poker</option>
+            <option value="aroundtheworld">Around the World</option>
+            <option value="baccarat">Baccarat</option>
+            <option value="blackjackplus">Blackjack Plus</option>
+            <option value="bonusbowling">Bonus Bowling</option>
+            <option value="caribbeanstud">Caribbean Stud</option>
+            <option value="crazy4">Crazy 4 Poker</option>
+            <option value="djwild">DJ Wild</option>
+            <option value="horserace">Horse Racing</option>
+            <option value="ilovesuits">I Luv Suits Poker</option>
+            <option value="missstud">Mississippi Stud</option>
+            <option value="paigow">Pai Gow Poker</option>
+            <option value="roulette">Roulette</option>
+            <option value="slots">Slots</option>
+            <option value="spanish21">Spanish 21</option>
+            <option value="uth">Ultimate Texas Hold’em</option>
+          </select>
+          <button id="btnLoadGame">Load Game</button>
+        </div>
 
-      <div id="gameMount"></div>
-    </section>
+        <div id="gameMount"></div>
+      </section>
+    </main>
 
-  </main>
+    <footer class="footer">
+      <small>All data stored locally in your browser (IndexedDB).</small>
+    </footer>
 
-  <footer class="footer">
-    <small>All data stored locally in your browser (IndexedDB).</small>
-  </footer>
-
-  <script type="module" src="./main.js"></script>
-</body>
+    <script type="module" src="./main.js"></script>
+  </body>
 </html>

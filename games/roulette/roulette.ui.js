@@ -1,21 +1,23 @@
 // games/roulette/roulette.ui.js
 import { EURO_WHEEL, spinWheel, evaluateBet } from "./roulette.engine.js";
 
-const REDS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const REDS = new Set([
+  1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+]);
 
 const OUTSIDE = [
-  { key:"LOW", label:"1–18" },
-  { key:"EVEN", label:"EVEN" },
-  { key:"RED", label:"RED" },
-  { key:"BLACK", label:"BLACK" },
-  { key:"ODD", label:"ODD" },
-  { key:"HIGH", label:"19–36" },
+  { key: "LOW", label: "1–18" },
+  { key: "EVEN", label: "EVEN" },
+  { key: "RED", label: "RED" },
+  { key: "BLACK", label: "BLACK" },
+  { key: "ODD", label: "ODD" },
+  { key: "HIGH", label: "19–36" },
 ];
 
 const DOZENS = [
-  { key:"DOZEN1", label:"1st 12" },
-  { key:"DOZEN2", label:"2nd 12" },
-  { key:"DOZEN3", label:"3rd 12" },
+  { key: "DOZEN1", label: "1st 12" },
+  { key: "DOZEN2", label: "2nd 12" },
+  { key: "DOZEN3", label: "3rd 12" },
 ];
 
 const CHIP_DENOMS = [1, 5, 25, 100, 500];
@@ -104,9 +106,9 @@ export function mountRoulette(mountEl, store) {
   // bets: Map<betKey, amount>
   // betKey examples: "STRAIGHT:17", "RED", "DOZEN2"
   let bets = new Map();
-  let betStack = [];     // for undo: [{key, amt}]
-  let lastBets = null;   // for rebet
-  let history = [];      // recent outcomes
+  let betStack = []; // for undo: [{key, amt}]
+  let lastBets = null; // for rebet
+  let history = []; // recent outcomes
 
   // ---------- wheel build ----------
   buildWheel(el.wheel);
@@ -164,9 +166,7 @@ export function mountRoulette(mountEl, store) {
     el.outside.innerHTML = "";
     for (const o of OUTSIDE) {
       const color =
-        o.key === "RED" ? "red" :
-        o.key === "BLACK" ? "black" :
-        "neutral";
+        o.key === "RED" ? "red" : o.key === "BLACK" ? "black" : "neutral";
       const cell = makeBetCell(o.label, o.key, color);
       cell.classList.add("wideBet");
       el.outside.appendChild(cell);
@@ -194,7 +194,7 @@ export function mountRoulette(mountEl, store) {
   }
 
   function paintAllBetCells() {
-    mountEl.querySelectorAll(".betCell").forEach(cell => {
+    mountEl.querySelectorAll(".betCell").forEach((cell) => {
       paintBetCell(cell, cell.dataset.key);
     });
   }
@@ -299,7 +299,10 @@ export function mountRoulette(mountEl, store) {
 
       // UI updates
       el.outcome.textContent = `Landed on ${landed}`;
-      el.pnl.textContent = netProfit >= 0 ? `Net: +$${netProfit}` : `Net: -$${Math.abs(netProfit)}`;
+      el.pnl.textContent =
+        netProfit >= 0
+          ? `Net: +$${netProfit}`
+          : `Net: -$${Math.abs(netProfit)}`;
 
       history.unshift(landed);
       history = history.slice(0, 12);
@@ -311,7 +314,6 @@ export function mountRoulette(mountEl, store) {
       // after spin: keep bets (casino tables keep chips unless cleared) —
       // but many apps clear by default. I recommend KEEP for realism.
       // If you prefer clear, call clear() here.
-
     } catch (e) {
       alert(e.message);
     } finally {
@@ -325,14 +327,16 @@ export function mountRoulette(mountEl, store) {
     el.rebet.disabled = lock;
     el.undo.disabled = lock;
     el.clear.disabled = lock;
-    mountEl.querySelectorAll(".betCell").forEach(x => x.classList.toggle("locked", lock));
+    mountEl
+      .querySelectorAll(".betCell")
+      .forEach((x) => x.classList.toggle("locked", lock));
   }
 
   function renderHistory() {
     el.history.innerHTML = "";
     for (const n of history) {
       const tag = document.createElement("div");
-      const cls = (n === 0) ? "hGreen" : (REDS.has(n) ? "hRed" : "hBlack");
+      const cls = n === 0 ? "hGreen" : REDS.has(n) ? "hRed" : "hBlack";
       tag.className = `histNum ${cls}`;
       tag.textContent = String(n);
       el.history.appendChild(tag);
@@ -364,18 +368,23 @@ function buildWheel(el) {
   // Make index 0 start at 12 o'clock, and make indices advance counterclockwise
   // so that rotating the wheel clockwise by +index*degPer brings that index to the pointer.
   el.innerHTML = EURO_WHEEL.map((num, i) => {
-    const angle = -90 - (i * degPer);
+    const angle = -90 - i * degPer;
 
-    const color = num === 0 ? "green"
-      : [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36].includes(num) ? "red" : "black";
+    const color =
+      num === 0
+        ? "green"
+        : [
+              1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+            ].includes(num)
+          ? "red"
+          : "black";
 
     return `<div class="slot ${color}" style="transform:rotate(${angle}deg)">${num}</div>`;
   }).join("");
 }
 
-
 function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function animateSpin(wheelEl, ballEl, index) {
@@ -383,10 +392,10 @@ async function animateSpin(wheelEl, ballEl, index) {
   const degPer = 360 / slots;
 
   const extraTurns = 6 + Math.floor(Math.random() * 3); // 6–8
-  const jitter = (Math.random() * 0.6 - 0.3) * degPer;  // smaller jitter
+  const jitter = (Math.random() * 0.6 - 0.3) * degPer; // smaller jitter
 
   const current = Number(wheelEl.dataset.rot || 0);
-  const target = current + (extraTurns * 360) + (index * degPer) + jitter;
+  const target = current + extraTurns * 360 + index * degPer + jitter;
 
   wheelEl.dataset.rot = String(target);
 
@@ -403,4 +412,3 @@ async function animateSpin(wheelEl, ballEl, index) {
 
   ballEl.classList.remove("ballSpin");
 }
-

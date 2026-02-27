@@ -66,7 +66,9 @@ export async function openDB() {
 export async function withTx(db, storeNames, mode, fn) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeNames, mode);
-    const stores = Object.fromEntries(storeNames.map(n => [n, tx.objectStore(n)]));
+    const stores = Object.fromEntries(
+      storeNames.map((n) => [n, tx.objectStore(n)]),
+    );
     let out;
 
     tx.oncomplete = () => resolve(out);
@@ -83,30 +85,30 @@ export function uuid() {
 
 export async function getAll(db, storeName) {
   return withTx(db, [storeName], "readonly", (s) =>
-    reqToPromise(s[storeName].getAll())
+    reqToPromise(s[storeName].getAll()),
   );
 }
 
 export async function put(db, storeName, value) {
   return withTx(db, [storeName], "readwrite", (s) =>
-    reqToPromise(s[storeName].put(value))
+    reqToPromise(s[storeName].put(value)),
   );
 }
 
 export async function get(db, storeName, key) {
   return withTx(db, [storeName], "readonly", (s) =>
-    reqToPromise(s[storeName].get(key))
+    reqToPromise(s[storeName].get(key)),
   );
 }
 
 export async function del(db, storeName, key) {
   return withTx(db, [storeName], "readwrite", (s) =>
-    reqToPromise(s[storeName].delete(key))
+    reqToPromise(s[storeName].delete(key)),
   );
 }
 
 export async function queryIndex(db, storeName, indexName, key) {
   return withTx(db, [storeName], "readonly", (s) =>
-    reqToPromise(s[storeName].index(indexName).getAll(key))
+    reqToPromise(s[storeName].index(indexName).getAll(key)),
   );
 }

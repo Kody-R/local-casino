@@ -1,9 +1,17 @@
 // games/threecard/threecard.engine.js
 import { makeDeck, shuffle } from "../../core/cards.js";
-import { eval3, compareEval3, dealerQualifies, handName3 } from "../../core/eval3.js";
+import {
+  eval3,
+  compareEval3,
+  dealerQualifies,
+  handName3,
+} from "../../core/eval3.js";
 import { evalBest5of6 } from "../../core/eval5.js";
 
-export async function dealThreeCardRound(store, { ante, pairPlus, sixCard, payouts }) {
+export async function dealThreeCardRound(
+  store,
+  { ante, pairPlus, sixCard, payouts },
+) {
   const round = await store.startRound("THREECARD");
 
   await store.placeBet(round.id, "ANTE", ante);
@@ -16,7 +24,7 @@ export async function dealThreeCardRound(store, { ante, pairPlus, sixCard, payou
 
   return {
     roundId: round.id,
-    live: { ante, pairPlus, sixCard, payouts, player, dealer }
+    live: { ante, pairPlus, sixCard, payouts, player, dealer },
   };
 }
 
@@ -24,7 +32,8 @@ export async function foldThreeCard(store, roundId, live) {
   // Folding forfeits Ante and any bonus wager. :contentReference[oaicite:0]{index=0}
   await store.settle(roundId, "ANTE", "LOSE", 0, 0);
   if (live.pairPlus > 0) await store.settle(roundId, "PAIR_PLUS", "LOSE", 0, 0);
-  if (live.sixCard > 0) await store.settle(roundId, "SIX_CARD_BONUS", "LOSE", 0, 0);
+  if (live.sixCard > 0)
+    await store.settle(roundId, "SIX_CARD_BONUS", "LOSE", 0, 0);
 
   await store.closeRound(roundId);
 
@@ -43,7 +52,13 @@ export async function playThreeCard(store, roundId, live) {
   if (live.pairPlus > 0) {
     const mult = live.payouts.pairPlus[pEval.rankCode] ?? 0;
     if (mult > 0) {
-      await store.settle(roundId, "PAIR_PLUS", "WIN", mult * live.pairPlus, live.pairPlus);
+      await store.settle(
+        roundId,
+        "PAIR_PLUS",
+        "WIN",
+        mult * live.pairPlus,
+        live.pairPlus,
+      );
     } else {
       await store.settle(roundId, "PAIR_PLUS", "LOSE", 0, 0);
     }
@@ -54,7 +69,13 @@ export async function playThreeCard(store, roundId, live) {
     const best6 = evalBest5of6([...live.player, ...live.dealer]);
     const mult = live.payouts.sixCard[best6.code] ?? 0;
     if (mult > 0) {
-      await store.settle(roundId, "SIX_CARD_BONUS", "WIN", mult * live.sixCard, live.sixCard);
+      await store.settle(
+        roundId,
+        "SIX_CARD_BONUS",
+        "WIN",
+        mult * live.sixCard,
+        live.sixCard,
+      );
     } else {
       await store.settle(roundId, "SIX_CARD_BONUS", "LOSE", 0, 0);
     }

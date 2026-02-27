@@ -4,7 +4,7 @@ import { eval3 } from "../../core/eval3.js";
 
 function cardBJValue(card) {
   if (card.r === "A") return 11;
-  if (["K","Q","J","T"].includes(card.r)) return 10;
+  if (["K", "Q", "J", "T"].includes(card.r)) return 10;
   return Number(card.r);
 }
 
@@ -26,7 +26,10 @@ export function handTotals(cards) {
   }
   // If we still have an ace counted as 11, it's soft
   // (i.e., at least one ace where we didn't reduce)
-  soft = cards.some(c => c.r === "A") && (total <= 21) && (cards.reduce((s,c)=>s+cardBJValue(c),0) !== total);
+  soft =
+    cards.some((c) => c.r === "A") &&
+    total <= 21 &&
+    cards.reduce((s, c) => s + cardBJValue(c), 0) !== total;
 
   const isBJ = cards.length === 2 && total === 21;
   return { best: total, isSoft: soft, isBlackjack: isBJ, isBust: total > 21 };
@@ -73,13 +76,15 @@ export async function dealBJRound(store, { wager, side3, payouts }) {
       dealer,
       status: "PLAYER_TURN", // PLAYER_TURN -> DEALER_TURN -> DONE
       doubled: false,
-      settled: false
-    }
+      settled: false,
+    },
   };
 }
 
 export function canDouble(live) {
-  return live.status === "PLAYER_TURN" && live.player.length === 2 && !live.doubled;
+  return (
+    live.status === "PLAYER_TURN" && live.player.length === 2 && !live.doubled
+  );
 }
 
 export function hit(live) {
@@ -124,7 +129,13 @@ export async function settleBJ(store, roundId, live) {
     const e3 = eval3(three);
     const mult = live.payouts.side3.paytable[e3.rankCode] ?? 0;
     if (mult > 0) {
-      await store.settle(roundId, "SIDE3", "WIN", mult * live.side3, live.side3);
+      await store.settle(
+        roundId,
+        "SIDE3",
+        "WIN",
+        mult * live.side3,
+        live.side3,
+      );
     } else {
       await store.settle(roundId, "SIDE3", "LOSE", 0, 0);
     }
@@ -148,28 +159,58 @@ export async function settleBJ(store, roundId, live) {
   // Dealer busts => player wins even money
   if (d.isBust) {
     // Win even money on each stake component
-    await store.settle(roundId, "MAIN", "WIN", (mainStake/ (live.doubled?2:1)) , (mainStake/ (live.doubled?2:1)));
-    if (live.doubled) await store.settle(roundId, "DOUBLE", "WIN", (mainStake/2), (mainStake/2));
+    await store.settle(
+      roundId,
+      "MAIN",
+      "WIN",
+      mainStake / (live.doubled ? 2 : 1),
+      mainStake / (live.doubled ? 2 : 1),
+    );
+    if (live.doubled)
+      await store.settle(
+        roundId,
+        "DOUBLE",
+        "WIN",
+        mainStake / 2,
+        mainStake / 2,
+      );
     await store.closeRound(roundId);
     return { title: "DEALER BUSTS", detail: `Dealer busts (${d.best}).` };
   }
 
   // Blackjack handling (player BJ vs dealer BJ)
   if (p.isBlackjack && d.isBlackjack) {
-    await store.settle(roundId, "MAIN", "PUSH", 0, (mainStake/ (live.doubled?2:1)));
-    if (live.doubled) await store.settle(roundId, "DOUBLE", "PUSH", 0, (mainStake/2));
+    await store.settle(
+      roundId,
+      "MAIN",
+      "PUSH",
+      0,
+      mainStake / (live.doubled ? 2 : 1),
+    );
+    if (live.doubled)
+      await store.settle(roundId, "DOUBLE", "PUSH", 0, mainStake / 2);
     await store.closeRound(roundId);
     return { title: "PUSH", detail: "Both have Blackjack." };
   }
   if (p.isBlackjack && !d.isBlackjack) {
     const mult = bjPayoutMultiplier(live.payouts.blackjackPays);
     // Profit = stake * mult ; stake returned
-    const baseStake = (mainStake/ (live.doubled?2:1));
+    const baseStake = mainStake / (live.doubled ? 2 : 1);
     await store.settle(roundId, "MAIN", "WIN", baseStake * mult, baseStake);
     // If doubled, blackjack can't happen (double only on 2 cards, but BJ resolves immediately before actions in UI)
-    if (live.doubled) await store.settle(roundId, "DOUBLE", "WIN", (mainStake/2) * 1, (mainStake/2));
+    if (live.doubled)
+      await store.settle(
+        roundId,
+        "DOUBLE",
+        "WIN",
+        (mainStake / 2) * 1,
+        mainStake / 2,
+      );
     await store.closeRound(roundId);
-    return { title: "BLACKJACK!", detail: `Pays ${live.payouts.blackjackPays}.` };
+    return {
+      title: "BLACKJACK!",
+      detail: `Pays ${live.payouts.blackjackPays}.`,
+    };
   }
   if (!p.isBlackjack && d.isBlackjack) {
     await store.settle(roundId, "MAIN", "LOSE", 0, 0);
@@ -180,9 +221,16 @@ export async function settleBJ(store, roundId, live) {
 
   // Compare totals
   if (p.best > d.best) {
-    const baseStake = (mainStake/ (live.doubled?2:1));
+    const baseStake = mainStake / (live.doubled ? 2 : 1);
     await store.settle(roundId, "MAIN", "WIN", baseStake, baseStake);
-    if (live.doubled) await store.settle(roundId, "DOUBLE", "WIN", (mainStake/2), (mainStake/2));
+    if (live.doubled)
+      await store.settle(
+        roundId,
+        "DOUBLE",
+        "WIN",
+        mainStake / 2,
+        mainStake / 2,
+      );
     await store.closeRound(roundId);
     return { title: "WIN", detail: `${p.best} beats ${d.best}.` };
   } else if (p.best < d.best) {
@@ -191,9 +239,10 @@ export async function settleBJ(store, roundId, live) {
     await store.closeRound(roundId);
     return { title: "LOSE", detail: `${p.best} loses to ${d.best}.` };
   } else {
-    const baseStake = (mainStake/ (live.doubled?2:1));
+    const baseStake = mainStake / (live.doubled ? 2 : 1);
     await store.settle(roundId, "MAIN", "PUSH", 0, baseStake);
-    if (live.doubled) await store.settle(roundId, "DOUBLE", "PUSH", 0, (mainStake/2));
+    if (live.doubled)
+      await store.settle(roundId, "DOUBLE", "PUSH", 0, mainStake / 2);
     await store.closeRound(roundId);
     return { title: "PUSH", detail: `${p.best} ties ${d.best}.` };
   }

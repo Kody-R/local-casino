@@ -4,17 +4,16 @@ const DEFAULT = {
     4: 1,
     5: 10,
     6: 100,
-    7: 300
+    7: 300,
   },
   superFlushRush: {
     3: 7,
     4: 60,
     5: 100,
     6: 1000,
-    7: 8000
-  }
+    7: 8000,
+  },
 };
-
 
 export function payoutsTemplateHTML() {
   return `
@@ -56,7 +55,7 @@ export async function loadILSPayouts(store) {
       root.querySelector("#ils_sfr_5").value = value.superFlushRush?.[5] ?? 0;
       root.querySelector("#ils_sfr_6").value = value.superFlushRush?.[6] ?? 0;
       root.querySelector("#ils_sfr_7").value = value.superFlushRush?.[7] ?? 0;
-    }
+    },
   };
 }
 
@@ -75,7 +74,7 @@ export async function saveILSPayouts(store, root) {
       5: num(root.querySelector("#ils_sfr_5").value),
       6: num(root.querySelector("#ils_sfr_6").value),
       7: num(root.querySelector("#ils_sfr_7").value),
-    }
+    },
   };
 
   await store.setSetting(key, value);

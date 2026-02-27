@@ -1,7 +1,16 @@
 // games/missstud/missstud.ui.js
 import { renderCards, renderCardBack } from "../../core/cards.js";
-import { DEFAULT_MAIN_PAYTABLE, DEFAULT_3CARD_BONUS } from "./missstud.payouts.js";
-import { newMissStudState, startHand, placeStreetBet, fold, settle } from "./missstud.engine.js";
+import {
+  DEFAULT_MAIN_PAYTABLE,
+  DEFAULT_3CARD_BONUS,
+} from "./missstud.payouts.js";
+import {
+  newMissStudState,
+  startHand,
+  placeStreetBet,
+  fold,
+  settle,
+} from "./missstud.engine.js";
 
 export function mountMissStud(mountEl, store) {
   mountEl.innerHTML = `
@@ -67,17 +76,16 @@ Pair 1:1
   const bonus3table = DEFAULT_3CARD_BONUS;
 
   function phaseStreet(phase) {
-      if (phase === "STREET3") return 3;
-      if (phase === "STREET4") return 4;
-      if (phase === "STREET5") return 5;
-      return null;
-    }
+    if (phase === "STREET3") return 3;
+    if (phase === "STREET4") return 4;
+    if (phase === "STREET5") return 5;
+    return null;
+  }
 
-    function streetLabel() {
-      const s = phaseStreet(state.phase);
-      return s ? `Street ${s}` : state.phase;
-    }
-
+  function streetLabel() {
+    const s = phaseStreet(state.phase);
+    return s ? `Street ${s}` : state.phase;
+  }
 
   function render() {
     // player cards always shown once dealt
@@ -100,111 +108,131 @@ Pair 1:1
       el.comm.append(...backWrap.childNodes);
     }
 
-
     renderActions();
   }
 
-    function renderActions() {
-      el.actions.innerHTML = "";
+  function renderActions() {
+    el.actions.innerHTML = "";
 
-      // No actions unless we're on a betting street
-      const s = phaseStreet(state.phase);
-      if (!s) return;
+    // No actions unless we're on a betting street
+    const s = phaseStreet(state.phase);
+    if (!s) return;
 
-      const makeBtn = (label, cls, onClick) => {
-        const b = document.createElement("button");
-        b.textContent = label;
-        b.className = cls || "";
-        b.addEventListener("click", onClick);
-        return b;
-      };
+    const makeBtn = (label, cls, onClick) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.className = cls || "";
+      b.addEventListener("click", onClick);
+      return b;
+    };
 
-      el.actions.appendChild(makeBtn("Fold", "danger", async () => {
+    el.actions.appendChild(
+      makeBtn("Fold", "danger", async () => {
         fold(state);
         await finishHand();
-      }));
+      }),
+    );
 
-      [1,2,3].forEach(m => {
-        el.actions.appendChild(makeBtn(`Bet ${m}x`, "ok", async () => {
+    [1, 2, 3].forEach((m) => {
+      el.actions.appendChild(
+        makeBtn(`Bet ${m}x`, "ok", async () => {
           await doStreetBet(s, m); // s is locked to current phase
-        }));
-      });
+        }),
+      );
+    });
 
-      // helpful hint
-      el.detail.textContent = `Choose Fold or Bet (${streetLabel()}).`;
+    // helpful hint
+    el.detail.textContent = `Choose Fold or Bet (${streetLabel()}).`;
+  }
+
+  async function doStreetBet(street, mult) {
+    if (!currentRound) throw new Error("No active round. Click Deal.");
+
+    // Validate the phase BEFORE charging any chips
+    const expected = phaseStreet(state.phase);
+    if (expected !== street) {
+      throw new Error(
+        `Wrong phase. Expected Street ${expected}, got Street ${street}.`,
+      );
     }
 
+    const amt = state.ante * Number(mult);
 
-    async function doStreetBet(street, mult) {
-      if (!currentRound) throw new Error("No active round. Click Deal.");
+    // Charge only after validation
+    await store.placeBet(currentRound.id, `MISSSTUD:STREET${street}`, amt);
 
-      // Validate the phase BEFORE charging any chips
-      const expected = phaseStreet(state.phase);
-      if (expected !== street) {
-        throw new Error(`Wrong phase. Expected Street ${expected}, got Street ${street}.`);
-      }
+    // Advance game state (reveals next card / updates phase)
+    placeStreetBet(state, street, mult);
+    render();
 
-      const amt = state.ante * Number(mult);
-
-      // Charge only after validation
-      await store.placeBet(currentRound.id, `MISSSTUD:STREET${street}`, amt);
-
-      // Advance game state (reveals next card / updates phase)
-      placeStreetBet(state, street, mult);
-      render();
-
-      // If we reached showdown, settle immediately
-      if (state.phase === "SHOWDOWN") {
-        settle(state, paytable, bonus3table);
-        await finishHand();
-      }
+    // If we reached showdown, settle immediately
+    if (state.phase === "SHOWDOWN") {
+      settle(state, paytable, bonus3table);
+      await finishHand();
     }
+  }
 
+  async function finishHand() {
+    if (!currentRound) return;
 
- async function finishHand() {
-  if (!currentRound) return;
+    try {
+      if (state.result?.outcome === "FOLD") {
+        el.result.textContent = "Fold";
+        el.detail.textContent = "All wagers lose.";
+        await store.closeRound(currentRound.id);
+        await store.uiRefresh?.();
+        return;
+      }
 
-  try {
-    if (state.result?.outcome === "FOLD") {
-      el.result.textContent = "Fold";
-      el.detail.textContent = "All wagers lose.";
+      const r = state.result;
+      if (!r) return;
+
+      if (r.main.type === "WIN") {
+        await store.settle(
+          currentRound.id,
+          "MISSSTUD:MAIN",
+          "WIN",
+          r.payoutMain,
+          0,
+        );
+      } else if (r.main.type === "PUSH") {
+        await store.settle(
+          currentRound.id,
+          "MISSSTUD:MAIN",
+          "PUSH",
+          0,
+          r.totalMainBets,
+        );
+      } else {
+        await store.settle(currentRound.id, "MISSSTUD:MAIN", "LOSE", 0, 0);
+      }
+
+      if (state.bonus3 > 0) {
+        if (r.bonus.win) {
+          await store.settle(
+            currentRound.id,
+            "MISSSTUD:BONUS3",
+            "WIN",
+            r.payoutBonus,
+            0,
+          );
+        } else {
+          await store.settle(currentRound.id, "MISSSTUD:BONUS3", "LOSE", 0, 0);
+        }
+      }
+
       await store.closeRound(currentRound.id);
       await store.uiRefresh?.();
-      return;
+
+      el.result.textContent = `${r.main.label}`;
+      el.detail.textContent = `Best 5-card hand: ${r.best.handName}. Bonus: ${state.bonus3 > 0 ? r.bonus.label : "—"}`;
+    } finally {
+      // HARD END OF HAND
+      state.phase = "RESOLVED";
+      currentRound = null;
+      render();
     }
-
-    const r = state.result;
-    if (!r) return;
-
-    if (r.main.type === "WIN") {
-      await store.settle(currentRound.id, "MISSSTUD:MAIN", "WIN", r.payoutMain, 0);
-    } else if (r.main.type === "PUSH") {
-      await store.settle(currentRound.id, "MISSSTUD:MAIN", "PUSH", 0, r.totalMainBets);
-    } else {
-      await store.settle(currentRound.id, "MISSSTUD:MAIN", "LOSE", 0, 0);
-    }
-
-    if (state.bonus3 > 0) {
-      if (r.bonus.win) {
-        await store.settle(currentRound.id, "MISSSTUD:BONUS3", "WIN", r.payoutBonus, 0);
-      } else {
-        await store.settle(currentRound.id, "MISSSTUD:BONUS3", "LOSE", 0, 0);
-      }
-    }
-
-    await store.closeRound(currentRound.id);
-    await store.uiRefresh?.();
-
-    el.result.textContent = `${r.main.label}`;
-    el.detail.textContent = `Best 5-card hand: ${r.best.handName}. Bonus: ${state.bonus3>0 ? r.bonus.label : "—"}`;
-  } finally {
-    // HARD END OF HAND
-    state.phase = "RESOLVED";
-    currentRound = null;
-    render();
   }
-}
-
 
   el.deal.addEventListener("click", async () => {
     try {
@@ -213,14 +241,17 @@ Pair 1:1
       const ante = Math.floor(Number(el.ante.value));
       const bonus3 = Math.floor(Number(el.bonus3.value || 0));
 
-      if (!Number.isFinite(ante) || ante <= 0) throw new Error("Enter a valid Ante.");
-      if (!Number.isFinite(bonus3) || bonus3 < 0) throw new Error("Enter a valid Bonus wager.");
+      if (!Number.isFinite(ante) || ante <= 0)
+        throw new Error("Enter a valid Ante.");
+      if (!Number.isFinite(bonus3) || bonus3 < 0)
+        throw new Error("Enter a valid Bonus wager.");
 
       currentRound = await store.startRound("MISSSTUD");
 
       // bets: ante always, optional bonus
       await store.placeBet(currentRound.id, "MISSSTUD:ANTE", ante);
-      if (bonus3 > 0) await store.placeBet(currentRound.id, "MISSSTUD:BONUS3", bonus3);
+      if (bonus3 > 0)
+        await store.placeBet(currentRound.id, "MISSSTUD:BONUS3", bonus3);
 
       startHand(state, { ante, bonus3 });
       render();

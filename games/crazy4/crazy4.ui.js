@@ -47,7 +47,7 @@ export function mountCrazy4(mountEl, store) {
     dCards: mountEl.querySelector("#c4_dealerCards"),
     result: mountEl.querySelector("#c4_result"),
     best4: mountEl.querySelector("#c4_best4"),
-    dealerBest4: mountEl.querySelector("#c4_dealerBest4")
+    dealerBest4: mountEl.querySelector("#c4_dealerBest4"),
   };
 
   let state = { roundId: null, live: null };
@@ -59,15 +59,22 @@ export function mountCrazy4(mountEl, store) {
     const superBonus = Number(el.sb.value || 0);
     const queensUp = Number(el.qu.value || 0);
 
-    const { roundId, live } =
-      await dealCrazy4Round(store, { ante, superBonus, queensUp, payouts });
+    const { roundId, live } = await dealCrazy4Round(store, {
+      ante,
+      superBonus,
+      queensUp,
+      payouts,
+    });
 
     state.roundId = roundId;
     state.live = live;
 
     const b4 = best4of5(live.player);
     el.best4.textContent = `Best 4-card: ${b4.name}`;
-    renderCards(el.pCards, live.player, false, { highlightIdx: b4.idxSet, dimOthers: true });
+    renderCards(el.pCards, live.player, false, {
+      highlightIdx: b4.idxSet,
+      dimOthers: true,
+    });
     renderCards(el.dCards, live.dealer, true);
     el.dealerBest4.textContent = "Dealer best 4-card: —";
 
@@ -80,8 +87,10 @@ export function mountCrazy4(mountEl, store) {
 
     const d4 = best4of5(state.live.dealer);
     el.dealerBest4.textContent = `Dealer best 4-card: ${d4.name}`;
-    renderCards(el.dCards, state.live.dealer, false, { highlightIdx: d4.idxSet, dimOthers: true });
-
+    renderCards(el.dCards, state.live.dealer, false, {
+      highlightIdx: d4.idxSet,
+      dimOthers: true,
+    });
 
     el.result.textContent = out.detail;
     el.fold.disabled = true;
@@ -94,7 +103,10 @@ export function mountCrazy4(mountEl, store) {
 
     const d4 = best4of5(state.live.dealer);
     el.dealerBest4.textContent = `Dealer best 4-card: ${d4.name}`;
-    renderCards(el.dCards, state.live.dealer, false, { highlightIdx: d4.idxSet, dimOthers: true });
+    renderCards(el.dCards, state.live.dealer, false, {
+      highlightIdx: d4.idxSet,
+      dimOthers: true,
+    });
 
     el.result.textContent = out.title;
     el.fold.disabled = true;

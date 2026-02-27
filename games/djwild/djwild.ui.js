@@ -1,10 +1,17 @@
 // games/djwild/djwild.ui.js
 import { renderCards, renderCardBack } from "../../core/cards.js";
 import { evalDJWild5 } from "./djwild.eval.js";
-import { BLIND_PAYTABLE, TRIPS_PAYTABLE, BAD_BEAT_PAYTABLE, lookup } from "./djwild.payouts.js";
+import {
+  BLIND_PAYTABLE,
+  TRIPS_PAYTABLE,
+  BAD_BEAT_PAYTABLE,
+  lookup,
+} from "./djwild.payouts.js";
 import { newDJState, dealDJ, foldDJ, playDJ } from "./djwild.engine.js";
 
-function fmt(n){ return new Intl.NumberFormat().format(n); }
+function fmt(n) {
+  return new Intl.NumberFormat().format(n);
+}
 
 export function mountDJWild(mountEl, store) {
   mountEl.innerHTML = `
@@ -42,13 +49,13 @@ export function mountDJWild(mountEl, store) {
       <summary>Paytables</summary>
       <div class="mono" style="white-space:pre-wrap;margin-top:8px;">
 BLIND (when Player wins; otherwise PUSH):
-${BLIND_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p ? `${p}:1` : "PUSH"}`).join("\n")}
+${BLIND_PAYTABLE.map(([k, p]) => `${k.padEnd(16)} ${p ? `${p}:1` : "PUSH"}`).join("\n")}
 
 TRIPS (Wild vs Natural):
-${TRIPS_PAYTABLE.map(([k,o])=>`${k.padEnd(16)} Wild ${String(o.wild).padStart(4)}:1   Natural ${String(o.natural).padStart(4)}:1`).join("\n")}
+${TRIPS_PAYTABLE.map(([k, o]) => `${k.padEnd(16)} Wild ${String(o.wild).padStart(4)}:1   Natural ${String(o.natural).padStart(4)}:1`).join("\n")}
 
 TWO-WAY BAD BEAT (Trips+ loses):
-${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
+${BAD_BEAT_PAYTABLE.map(([k, p]) => `${k.padEnd(16)} ${p}:1`).join("\n")}
       </div>
     </details>
   `;
@@ -97,8 +104,8 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
 
     if (state.phase === "DECISION") {
       setActions([
-        { label:"Fold", cls:"danger", onClick: onFold },
-        { label:"Play (2x Ante)", cls:"primary", onClick: onPlay },
+        { label: "Fold", cls: "danger", onClick: onFold },
+        { label: "Play (2x Ante)", cls: "primary", onClick: onPlay },
       ]);
     } else {
       setActions([]);
@@ -113,9 +120,12 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
       const trips = Math.floor(Number(el.trips.value || 0));
       const bb = Math.floor(Number(el.bb.value || 0));
 
-      if (!Number.isFinite(ante) || ante <= 0) throw new Error("Enter a valid Ante.");
-      if (!Number.isFinite(trips) || trips < 0) throw new Error("Trips must be 0 or more.");
-      if (!Number.isFinite(bb) || bb < 0) throw new Error("Bad Beat must be 0 or more.");
+      if (!Number.isFinite(ante) || ante <= 0)
+        throw new Error("Enter a valid Ante.");
+      if (!Number.isFinite(trips) || trips < 0)
+        throw new Error("Trips must be 0 or more.");
+      if (!Number.isFinite(bb) || bb < 0)
+        throw new Error("Bad Beat must be 0 or more.");
 
       round = await store.startRound("DJWILD");
 
@@ -144,45 +154,74 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
   }
 
   async function settleTrips(playerEval) {
-    if (!state.trips || state.trips <= 0) return { didPay:false, msg:"Trips: —" };
+    if (!state.trips || state.trips <= 0)
+      return { didPay: false, msg: "Trips: —" };
 
     // Trips wins if Three-of-a-kind or better
-    const qualifying = ["THREE_KIND","STRAIGHT","FLUSH","FULL_HOUSE","FOUR_KIND","STRAIGHT_FLUSH","FIVE_OF_KIND","ROYAL_FLUSH","FIVE_WILDS"];
+    const qualifying = [
+      "THREE_KIND",
+      "STRAIGHT",
+      "FLUSH",
+      "FULL_HOUSE",
+      "FOUR_KIND",
+      "STRAIGHT_FLUSH",
+      "FIVE_OF_KIND",
+      "ROYAL_FLUSH",
+      "FIVE_WILDS",
+    ];
     if (!qualifying.includes(playerEval.key)) {
       await store.settle(round.id, "TRIPS", "LOSE", 0, 0);
-      return { didPay:false, msg:"Trips: No pay" };
+      return { didPay: false, msg: "Trips: No pay" };
     }
 
     const row = TRIPS_PAYTABLE.find(([k]) => k === playerEval.key);
-    const pays = row ? (playerEval.isNaturalForTrips ? row[1].natural : row[1].wild) : 0;
+    const pays = row
+      ? playerEval.isNaturalForTrips
+        ? row[1].natural
+        : row[1].wild
+      : 0;
 
     if (pays > 0) {
       await store.settle(round.id, "TRIPS", "WIN", state.trips * pays, 0);
-      return { didPay:true, msg:`Trips: ${playerEval.isNaturalForTrips ? "Natural" : "Wild"} ${pays}:1` };
+      return {
+        didPay: true,
+        msg: `Trips: ${playerEval.isNaturalForTrips ? "Natural" : "Wild"} ${pays}:1`,
+      };
     }
 
     await store.settle(round.id, "TRIPS", "LOSE", 0, 0);
-    return { didPay:false, msg:"Trips: No pay" };
+    return { didPay: false, msg: "Trips: No pay" };
   }
 
   async function settleBadBeat(playerEval, cmp) {
-    if (!state.badbeat || state.badbeat <= 0) return { didPay:false, msg:"Bad Beat: —" };
+    if (!state.badbeat || state.badbeat <= 0)
+      return { didPay: false, msg: "Bad Beat: —" };
 
     // Pays only if Trips+ LOSES to dealer (cmp === -1)
-    const qualifying = ["THREE_KIND","STRAIGHT","FLUSH","FULL_HOUSE","FOUR_KIND","STRAIGHT_FLUSH","FIVE_OF_KIND","ROYAL_FLUSH","FIVE_WILDS"];
+    const qualifying = [
+      "THREE_KIND",
+      "STRAIGHT",
+      "FLUSH",
+      "FULL_HOUSE",
+      "FOUR_KIND",
+      "STRAIGHT_FLUSH",
+      "FIVE_OF_KIND",
+      "ROYAL_FLUSH",
+      "FIVE_WILDS",
+    ];
     if (!(cmp === -1 && qualifying.includes(playerEval.key))) {
       await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
-      return { didPay:false, msg:"Bad Beat: No pay" };
+      return { didPay: false, msg: "Bad Beat: No pay" };
     }
 
     const pays = lookup(BAD_BEAT_PAYTABLE, playerEval.key);
     if (pays > 0) {
       await store.settle(round.id, "BADBEAT", "WIN", state.badbeat * pays, 0);
-      return { didPay:true, msg:`Bad Beat: ${pays}:1` };
+      return { didPay: true, msg: `Bad Beat: ${pays}:1` };
     }
 
     await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
-    return { didPay:false, msg:"Bad Beat: No pay" };
+    return { didPay: false, msg: "Bad Beat: No pay" };
   }
 
   async function onFold() {
@@ -231,8 +270,8 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
       const pEval = evalDJWild5(state.player);
       const dEval = evalDJWild5(state.dealer);
       const wildInfo =
-      `${pEval.wildNote ? ` | ${pEval.wildNote}` : ""}` +
-      `${dEval.wildNote ? ` | Dealer ${dEval.wildNote}` : ""}`;
+        `${pEval.wildNote ? ` | ${pEval.wildNote}` : ""}` +
+        `${dEval.wildNote ? ` | Dealer ${dEval.wildNote}` : ""}`;
 
       const cmp = compareHands(pEval, dEval);
 
@@ -247,19 +286,26 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
 
         const blindPays = lookup(BLIND_PAYTABLE, pEval.key);
         if (blindPays > 0) {
-          await store.settle(round.id, "BLIND", "WIN", state.blind * blindPays, 0);
+          await store.settle(
+            round.id,
+            "BLIND",
+            "WIN",
+            state.blind * blindPays,
+            0,
+          );
         } else {
           await store.settle(round.id, "BLIND", "PUSH", 0, state.blind); // return stake
         }
 
         // Bad beat loses if player wins
-        if (state.badbeat > 0) await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
+        if (state.badbeat > 0)
+          await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
 
         el.result.textContent = "PLAYER WINS";
         el.detail.textContent =
           `Player: ${pEval.name} vs Dealer: ${dEval.name}. ` +
-          `Blind ${blindPays > 0 ? `${blindPays}:1` : "PUSH"}. ${tripsRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
-
+          `Blind ${blindPays > 0 ? `${blindPays}:1` : "PUSH"}. ${tripsRes.msg}.` +
+          (wildInfo ? ` ${wildInfo}` : "");
       } else if (cmp === 0) {
         // Push: return Ante, Blind, Play
         await store.settle(round.id, "ANTE", "PUSH", 0, state.ante);
@@ -267,11 +313,13 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
         await store.settle(round.id, "PLAY", "PUSH", 0, state.play);
 
         // Bad beat loses on tie
-        if (state.badbeat > 0) await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
+        if (state.badbeat > 0)
+          await store.settle(round.id, "BADBEAT", "LOSE", 0, 0);
 
         el.result.textContent = "PUSH";
-        el.detail.textContent = `Player: ${pEval.name} ties Dealer: ${dEval.name}. ${tripsRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
-
+        el.detail.textContent =
+          `Player: ${pEval.name} ties Dealer: ${dEval.name}. ${tripsRes.msg}.` +
+          (wildInfo ? ` ${wildInfo}` : "");
       } else {
         // Dealer wins: Ante, Blind, Play lose
         await store.settle(round.id, "ANTE", "LOSE", 0, 0);
@@ -284,7 +332,8 @@ ${BAD_BEAT_PAYTABLE.map(([k,p])=>`${k.padEnd(16)} ${p}:1`).join("\n")}
         el.result.textContent = "DEALER WINS";
         el.detail.textContent =
           `Player: ${pEval.name} loses to Dealer: ${dEval.name}. ` +
-          `${tripsRes.msg}. ${bbRes.msg}.` + (wildInfo ? ` ${wildInfo}` : "");
+          `${tripsRes.msg}. ${bbRes.msg}.` +
+          (wildInfo ? ` ${wildInfo}` : "");
       }
 
       await store.closeRound(round.id);

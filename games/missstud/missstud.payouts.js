@@ -1,7 +1,7 @@
 // games/missstud/missstud.payouts.js
 
 // Common default Mississippi Stud paytable (EDITABLE).
-// PDF confirms Royal=500:1 and win/push thresholds, but not all rows.  
+// PDF confirms Royal=500:1 and win/push thresholds, but not all rows.
 export const DEFAULT_MAIN_PAYTABLE = {
   ROYAL_FLUSH: 500,
   STRAIGHT_FLUSH: 100,
@@ -16,7 +16,7 @@ export const DEFAULT_MAIN_PAYTABLE = {
   // PAIR_6_TO_10 => PUSH
 };
 
-// PDF-provided 3-card bonus paytable 
+// PDF-provided 3-card bonus paytable
 export const DEFAULT_3CARD_BONUS = {
   STRAIGHT_FLUSH: 40,
   THREE_KIND: 30,
@@ -30,15 +30,16 @@ export function best5From7(cards7, eval5Fn) {
   // returns { cards5, score, category, handName, rankKey }
   let best = null;
 
-  for (let a=0; a<7; a++) for (let b=a+1; b<7; b++) {
-    const five = [];
-    for (let i=0;i<7;i++) if (i!==a && i!==b) five.push(cards7[i]);
+  for (let a = 0; a < 7; a++)
+    for (let b = a + 1; b < 7; b++) {
+      const five = [];
+      for (let i = 0; i < 7; i++) if (i !== a && i !== b) five.push(cards7[i]);
 
-    const e = eval5Fn(five); // assume returns object or numeric; we normalize
-    const norm = normalizeEval(e, five);
+      const e = eval5Fn(five); // assume returns object or numeric; we normalize
+      const norm = normalizeEval(e, five);
 
-    if (!best || norm.score > best.score) best = norm;
-  }
+      if (!best || norm.score > best.score) best = norm;
+    }
 
   // Map to payout keys:
   best.rankKey = mapToPayKey(best);
@@ -57,7 +58,7 @@ function normalizeEval(e, cards5) {
     category: e.category ?? null,
     handName: e.name ?? e.handName ?? "—",
     // include any other fields you may already compute
-    ...e
+    ...e,
   };
 }
 
@@ -75,12 +76,12 @@ function mapToPayKey(best) {
   if (c.includes("TWO_PAIR")) return "TWO_PAIR";
 
   // If your eval exposes pair ranks, use that; otherwise we do a basic check here:
-  const ranks = best.cards5.map(c => rankNum(c)).sort((a,b)=>a-b);
+  const ranks = best.cards5.map((c) => rankNum(c)).sort((a, b) => a - b);
   const counts = countRanks(ranks);
-  const hasPair = Object.values(counts).some(v=>v===2);
+  const hasPair = Object.values(counts).some((v) => v === 2);
 
   if (hasPair) {
-    const pairRank = Number(Object.keys(counts).find(k=>counts[k]===2));
+    const pairRank = Number(Object.keys(counts).find((k) => counts[k] === 2));
     // 6-10 push, J-A win
     if (pairRank >= 6 && pairRank <= 10) return "PAIR_6_TO_10";
     if (pairRank >= 11 || pairRank === 14) return "PAIR_JACKS_PLUS";
@@ -103,6 +104,6 @@ function rankNum(card) {
 
 function countRanks(ranks) {
   const m = {};
-  for (const r of ranks) m[r] = (m[r]||0) + 1;
+  for (const r of ranks) m[r] = (m[r] || 0) + 1;
   return m;
 }

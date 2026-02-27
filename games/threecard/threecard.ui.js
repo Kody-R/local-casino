@@ -1,6 +1,14 @@
 // games/threecard/threecard.ui.js
-import { dealThreeCardRound, foldThreeCard, playThreeCard } from "./threecard.engine.js";
-import { loadThreeCardPayouts, saveThreeCardPayouts, payoutsTemplateHTML } from "./threecard.payouts.js";
+import {
+  dealThreeCardRound,
+  foldThreeCard,
+  playThreeCard,
+} from "./threecard.engine.js";
+import {
+  loadThreeCardPayouts,
+  saveThreeCardPayouts,
+  payoutsTemplateHTML,
+} from "./threecard.payouts.js";
 import { renderCards } from "../../core/cards.js";
 
 export function mountThreeCard(mountEl, store) {
@@ -97,7 +105,12 @@ export function mountThreeCard(mountEl, store) {
       const payouts = await loadThreeCardPayouts(store);
       state.payouts = payouts;
 
-      const { roundId, live } = await dealThreeCardRound(store, { ante, pairPlus: pp, sixCard: sc, payouts: payouts.value });
+      const { roundId, live } = await dealThreeCardRound(store, {
+        ante,
+        pairPlus: pp,
+        sixCard: sc,
+        payouts: payouts.value,
+      });
       state.roundId = roundId;
       state.live = live;
 
@@ -109,7 +122,9 @@ export function mountThreeCard(mountEl, store) {
       setButtons(false, true);
 
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   });
 
   el.fold.addEventListener("click", async () => {
@@ -118,10 +133,13 @@ export function mountThreeCard(mountEl, store) {
       renderCards(el.dCards, state.live.dealer, false);
       el.result.textContent = "FOLD";
       el.detail.textContent = out.detail;
-      state.roundId = null; state.live = null;
+      state.roundId = null;
+      state.live = null;
       setButtons(true, false);
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   });
 
   el.play.addEventListener("click", async () => {
@@ -130,9 +148,12 @@ export function mountThreeCard(mountEl, store) {
       renderCards(el.dCards, state.live.dealer, false);
       el.result.textContent = out.title;
       el.detail.textContent = out.detail;
-      state.roundId = null; state.live = null;
+      state.roundId = null;
+      state.live = null;
       setButtons(true, false);
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   });
 }

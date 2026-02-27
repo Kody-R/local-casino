@@ -30,7 +30,7 @@ export const FIVE_SHOT_PAY_TABLE_1 = {
 };
 
 const SUITS = ["S", "H", "D", "C"];
-const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
+const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
 const RANK_VALUE = Object.fromEntries(RANKS.map((r, i) => [r, i + 2])); // 2..14
 
 export function makeDeck() {
@@ -55,29 +55,31 @@ export function cardToString(c) {
 // Hand evaluation helpers
 // -----------------------------
 function isFlush(cards) {
-  return cards.every(c => c.s === cards[0].s);
+  return cards.every((c) => c.s === cards[0].s);
 }
 
 function rankCounts(cards) {
   const m = new Map();
   for (const c of cards) m.set(c.r, (m.get(c.r) || 0) + 1);
-  return [...m.entries()].sort((a,b) => b[1]-a[1] || (RANK_VALUE[b[0]]-RANK_VALUE[a[0]]));
+  return [...m.entries()].sort(
+    (a, b) => b[1] - a[1] || RANK_VALUE[b[0]] - RANK_VALUE[a[0]],
+  );
 }
 
 function sortedValues(cards) {
-  return cards.map(c => RANK_VALUE[c.r]).sort((a,b) => a-b);
+  return cards.map((c) => RANK_VALUE[c.r]).sort((a, b) => a - b);
 }
 
 function isStraightFromValues(vals) {
   // vals sorted asc
   // A-2-3-4-5 special case
-  const wheel = [2,3,4,5,14];
-  const isWheel = vals.length === 5 && vals.every((v,i)=>v===wheel[i]);
+  const wheel = [2, 3, 4, 5, 14];
+  const isWheel = vals.length === 5 && vals.every((v, i) => v === wheel[i]);
   if (isWheel) return true;
 
   // generic consecutive
   for (let i = 1; i < vals.length; i++) {
-    if (vals[i] !== vals[i-1] + 1) return false;
+    if (vals[i] !== vals[i - 1] + 1) return false;
   }
   return true;
 }
@@ -85,11 +87,11 @@ function isStraightFromValues(vals) {
 function isStraight3(vals) {
   // vals sorted asc length=3
   // A-2-3 special case
-  const a23 = [2,3,14];
-  const isA23 = vals.every((v,i)=>v===a23[i]);
+  const a23 = [2, 3, 14];
+  const isA23 = vals.every((v, i) => v === a23[i]);
   if (isA23) return true;
 
-  return (vals[1] === vals[0] + 1) && (vals[2] === vals[1] + 1);
+  return vals[1] === vals[0] + 1 && vals[2] === vals[1] + 1;
 }
 
 // -----------------------------
@@ -110,14 +112,15 @@ export function eval3ShotHand(cards3) {
   const counts = rankCounts(cards3);
   const unique = counts.length;
 
-  const ranksSet = new Set(cards3.map(c => c.r));
+  const ranksSet = new Set(cards3.map((c) => c.r));
   const isMiniRoyal =
     flush && ranksSet.has("A") && ranksSet.has("K") && ranksSet.has("Q");
 
   if (isMiniRoyal) return { name: "Mini royal", key: "MINI_ROYAL" };
 
   const straight = isStraight3(vals);
-  if (straight && flush) return { name: "Straight flush", key: "STRAIGHT_FLUSH" };
+  if (straight && flush)
+    return { name: "Straight flush", key: "STRAIGHT_FLUSH" };
   if (unique === 1) return { name: "Three of a kind", key: "TRIPS" };
   if (straight) return { name: "Straight", key: "STRAIGHT" };
   if (flush) return { name: "Flush", key: "FLUSH" };
@@ -147,13 +150,18 @@ export function eval5Hand(cards5) {
   const counts = rankCounts(cards5); // [ [rank, count], ...] sorted
 
   // Royal flush: A K Q J T straight + flush
-  const ranksSet = new Set(cards5.map(c => c.r));
-  const isRoyal = flush && ["A","K","Q","J","T"].every(r => ranksSet.has(r));
+  const ranksSet = new Set(cards5.map((c) => c.r));
+  const isRoyal =
+    flush && ["A", "K", "Q", "J", "T"].every((r) => ranksSet.has(r));
 
   if (isRoyal) return { name: "Royal flush", key: "ROYAL_FLUSH" };
-  if (straight && flush) return { name: "Straight flush", key: "STRAIGHT_FLUSH" };
+  if (straight && flush)
+    return { name: "Straight flush", key: "STRAIGHT_FLUSH" };
 
-  const pattern = counts.map(x => x[1]).sort((a,b)=>b-a).join(",");
+  const pattern = counts
+    .map((x) => x[1])
+    .sort((a, b) => b - a)
+    .join(",");
   if (pattern === "4,1") return { name: "Four of a kind", key: "QUADS" };
   if (pattern === "3,2") return { name: "Full house", key: "FULL_HOUSE" };
   if (flush) return { name: "Flush", key: "FLUSH" };
@@ -162,7 +170,7 @@ export function eval5Hand(cards5) {
   if (pattern === "2,2,1") return { name: "Two pair", key: "TWO_PAIR" };
 
   if (pattern === "2,1,1,1") {
-    const pairRank = counts.find(x => x[1] === 2)?.[0];
+    const pairRank = counts.find((x) => x[1] === 2)?.[0];
     const v = RANK_VALUE[pairRank];
     if (v >= 10) return { name: "Tens or better", key: "TENS_OR_BETTER" };
   }
@@ -251,11 +259,14 @@ export function playerRaise(state) {
 
   const needed = state.bet1 * 2; // bet2 + bet3 equal to bet1
 
-  return revealAndSettle({
-  ...state,
-  bet2: state.bet1,
-  bet3: state.bet1,
-}, { raised: true });
+  return revealAndSettle(
+    {
+      ...state,
+      bet2: state.bet1,
+      bet3: state.bet1,
+    },
+    { raised: true },
+  );
 }
 
 function payoutToOne(bet, mult) {
@@ -271,7 +282,7 @@ function settleShots({ bet1, bet2, bet3, hole, community }) {
     { label: "3rd Shot", bet: bet3, cards: [hole[0], hole[1], community[2]] },
   ];
 
-  const shotOutcomes = hands.map(h => {
+  const shotOutcomes = hands.map((h) => {
     if (!h.bet) {
       return { ...h, eval: { name: "No bet", key: "LOSS" }, mult: 0, win: 0 };
     }
@@ -299,7 +310,7 @@ function revealAndSettle(state, { raised }) {
   const shots = settleShots(state);
   const five = settleFiveShot(state);
 
-  const totalReturn = shots.reduce((a,x)=>a+x.win, 0) + five.win;
+  const totalReturn = shots.reduce((a, x) => a + x.win, 0) + five.win;
   const totalWagered = state.bet1 + state.bet2 + state.bet3 + state.bet5;
 
   // Net change relative to *start of round* is (totalReturn - totalWagered),
@@ -317,19 +328,23 @@ function revealAndSettle(state, { raised }) {
   };
 
   return {
-  ...state,
-  phase: "RESULT",
-  results,
-  lastNet,
-  message: lastNet >= 0 ? `You won ${lastNet}.` : `You lost ${Math.abs(lastNet)}.`,
-};
+    ...state,
+    phase: "RESULT",
+    results,
+    lastNet,
+    message:
+      lastNet >= 0 ? `You won ${lastNet}.` : `You lost ${Math.abs(lastNet)}.`,
+  };
 }
 
 export function nextRound(state) {
   if (!canNewRound(state)) return state;
   return {
     ...state,
-    bet1: 0, bet2: 0, bet3: 0, bet5: 0,
+    bet1: 0,
+    bet2: 0,
+    bet3: 0,
+    bet5: 0,
     deck: [],
     hole: [],
     community: [],

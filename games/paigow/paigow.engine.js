@@ -3,13 +3,12 @@ import { makeDeckPaiGow, shuffle } from "../../core/cards.js";
 import { eval5, compareEval5 } from "../../core/eval5.js";
 import { PAIGOW_PAYOUTS, lookupPay } from "./paigow.payouts.js";
 
-
 function eval5PaiGow(cards) {
-  const hasJoker = cards.some(c => c.paiGowJoker);
+  const hasJoker = cards.some((c) => c.paiGowJoker);
 
   if (!hasJoker) return eval5(cards);
 
-  const nonJoker = cards.filter(c => !c.paiGowJoker);
+  const nonJoker = cards.filter((c) => !c.paiGowJoker);
 
   // Try best straight or flush completion first
   const bestStraightFlush = tryCompleteStraightFlush(nonJoker);
@@ -25,8 +24,22 @@ function tryCompleteStraightFlush(nonJoker) {
   // Simple approach: brute force replacement over all ranks/suits
 
   const possible = [];
-  const ranks = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
-  const suits = ["S","H","D","C"];
+  const ranks = [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "T",
+    "J",
+    "Q",
+    "K",
+    "A",
+  ];
+  const suits = ["S", "H", "D", "C"];
 
   for (const r of ranks) {
     for (const s of suits) {
@@ -40,26 +53,26 @@ function tryCompleteStraightFlush(nonJoker) {
 
   if (possible.length === 0) return null;
 
-  return possible.sort((a,b)=>compareEval5(b,a))[0];
+  return possible.sort((a, b) => compareEval5(b, a))[0];
 }
 
 function hasFiveAces(cards7) {
-  const aces = cards7.filter(c => c.r === "A").length;
-  const joker = cards7.some(c => c.paiGowJoker);
+  const aces = cards7.filter((c) => c.r === "A").length;
+  const joker = cards7.some((c) => c.paiGowJoker);
   return joker && aces === 4;
 }
 
-
-function freshShoe(decks=1){
+function freshShoe(decks = 1) {
   const shoe = [];
-  for (let d=0; d<decks; d++) shoe.push(...makeDeckPaiGow());
+  for (let d = 0; d < decks; d++) shoe.push(...makeDeckPaiGow());
   return shuffle(shoe);
 }
 
+function draw(shoe) {
+  return shoe.pop();
+}
 
-function draw(shoe){ return shoe.pop(); }
-
-function rankVal(r){
+function rankVal(r) {
   if (r === "A") return 14;
   if (r === "K") return 13;
   if (r === "Q") return 12;
@@ -70,22 +83,22 @@ function rankVal(r){
 
 // Map a 2-card Pai Gow LOW hand into the SAME eval vector space as eval5().
 // eval5 category weights: HI=1, PR=2, 2P=3, TK=4, ST=5, FL=6, FH=7, FK=8, SF=9, RF=10
-function evalLowAsEval5Vec(cards2){
+function evalLowAsEval5Vec(cards2) {
   const a = rankVal(cards2[0].r);
   const b = rankVal(cards2[1].r);
-  const hi = Math.max(a,b);
-  const lo = Math.min(a,b);
+  const hi = Math.max(a, b);
+  const lo = Math.min(a, b);
 
   if (a === b) {
     // Pair (PR): vec [2, pairRank, kickers...]
     // Low has no kickers, so pad with zeros.
-    return { code:"PR", vec:[2, hi, 0, 0, 0, 0] };
+    return { code: "PR", vec: [2, hi, 0, 0, 0, 0] };
   }
   // High card (HI): vec [1, ranks...]
-  return { code:"HI", vec:[1, hi, lo, 0, 0, 0] };
+  return { code: "HI", vec: [1, hi, lo, 0, 0, 0] };
 }
 
-function lowName(cards2){
+function lowName(cards2) {
   if (cards2[0].r === cards2[1].r) return `Pair of ${cards2[0].r}s`;
   const a = cards2[0].r === "T" ? "10" : cards2[0].r;
   const b = cards2[1].r === "T" ? "10" : cards2[1].r;
@@ -94,7 +107,7 @@ function lowName(cards2){
 
 // LEGALITY (airtight):
 // A split is legal iff evalHigh >= evalLow (using compareEval5 on the vectors).
-function isLegalSplit(high5, low2){
+function isLegalSplit(high5, low2) {
   const hiEval = eval5PaiGow(high5);
   const loEval = evalLowAsEval5Vec(low2);
   return compareEval5(hiEval, loEval) >= 0;
@@ -103,13 +116,13 @@ function isLegalSplit(high5, low2){
 // Choose best split for “House Way” (deterministic):
 // Primary: maximize LOW hand
 // Secondary: maximize HIGH hand
-export function chooseHouseWaySplit(cards7){
+export function chooseHouseWaySplit(cards7) {
   let best = null;
 
-  for (let i=0; i<7; i++){
-    for (let j=i+1; j<7; j++){
+  for (let i = 0; i < 7; i++) {
+    for (let j = i + 1; j < 7; j++) {
       const low = [cards7[i], cards7[j]];
-      const high = cards7.filter((_,idx)=>idx!==i && idx!==j);
+      const high = cards7.filter((_, idx) => idx !== i && idx !== j);
 
       if (!isLegalSplit(high, low)) continue;
 
@@ -118,10 +131,16 @@ export function chooseHouseWaySplit(cards7){
 
       const cand = { high, low, hiEval, loEval };
 
-      if (!best) { best = cand; continue; }
+      if (!best) {
+        best = cand;
+        continue;
+      }
 
       const loCmp = compareEval5(cand.loEval, best.loEval);
-      if (loCmp > 0) { best = cand; continue; }
+      if (loCmp > 0) {
+        best = cand;
+        continue;
+      }
       if (loCmp < 0) continue;
 
       const hiCmp = compareEval5(cand.hiEval, best.hiEval);
@@ -132,9 +151,14 @@ export function chooseHouseWaySplit(cards7){
   // In practice there is always at least one legal split.
   // As a fallback, do naive split.
   if (!best) {
-    const low = cards7.slice(5,7);
-    const high = cards7.slice(0,5);
-    best = { high, low, hiEval: eval5PaiGow(high), loEval: evalLowAsEval5Vec(low) };
+    const low = cards7.slice(5, 7);
+    const high = cards7.slice(0, 5);
+    best = {
+      high,
+      low,
+      hiEval: eval5PaiGow(high),
+      loEval: evalLowAsEval5Vec(low),
+    };
   }
 
   return best;
@@ -142,12 +166,14 @@ export function chooseHouseWaySplit(cards7){
 
 // Fortune evaluation uses the player’s SEVEN cards regardless of how they set.
 // We implement the standard ladder that applies without joker. :contentReference[oaicite:2]{index=2}
-function is7CardFlush(cards7){
-  return cards7.every(c => c.s === cards7[0].s);
+function is7CardFlush(cards7) {
+  return cards7.every((c) => c.s === cards7[0].s);
 }
 
-function is7CardStraight(cards7){
-  const uniq = [...new Set(cards7.map(c => rankVal(c.r)))].sort((a,b)=>a-b);
+function is7CardStraight(cards7) {
+  const uniq = [...new Set(cards7.map((c) => rankVal(c.r)))].sort(
+    (a, b) => a - b,
+  );
   if (uniq.length !== 7) return false;
 
   // normal 7-run
@@ -155,26 +181,26 @@ function is7CardStraight(cards7){
 
   // allow A as 1 for wheel-ish runs (A234567)
   // map A(14)->1 and test again
-  const mapped = uniq.map(v => v === 14 ? 1 : v).sort((a,b)=>a-b);
-  return (mapped[0] + 6 === mapped[6]);
+  const mapped = uniq.map((v) => (v === 14 ? 1 : v)).sort((a, b) => a - b);
+  return mapped[0] + 6 === mapped[6];
 }
 
-function is7CardStraightFlush(cards7){
+function is7CardStraightFlush(cards7) {
   return is7CardFlush(cards7) && is7CardStraight(cards7);
 }
 
 // Royal + Royal Match:
 // Best 5 is a Royal Flush, AND the two leftover cards are suited K & Q in the SAME suit.
-function isRoyalPlusRoyalMatch(cards7){
+function isRoyalPlusRoyalMatch(cards7) {
   // Find suit that can form royal: need T,J,Q,K,A same suit
   const bySuit = new Map();
-  for (const c of cards7){
+  for (const c of cards7) {
     if (!bySuit.has(c.s)) bySuit.set(c.s, []);
     bySuit.get(c.s).push(c.r);
   }
-  for (const [s, ranks] of bySuit.entries()){
+  for (const [s, ranks] of bySuit.entries()) {
     const set = new Set(ranks);
-    const hasRoyal = ["T","J","Q","K","A"].every(r => set.has(r));
+    const hasRoyal = ["T", "J", "Q", "K", "A"].every((r) => set.has(r));
     if (!hasRoyal) continue;
 
     // “Royal match” extra KQ same suit beyond the royal’s KQ
@@ -201,7 +227,7 @@ function isRoyalPlusRoyalMatch(cards7){
   return false;
 }
 
-export function fortuneKey(cards7){
+export function fortuneKey(cards7) {
   if (hasFiveAces(cards7)) return "5A";
   if (is7CardStraightFlush(cards7)) return "7SF";
   if (isRoyalPlusRoyalMatch(cards7)) return "RFRM";
@@ -209,9 +235,9 @@ export function fortuneKey(cards7){
   // Otherwise pay based on best 5-card category within the 7 cards:
   // brute 7 choose 5 = 21 combos
   let best = null;
-  for (let a=0; a<7; a++){
-    for (let b=a+1; b<7; b++){
-      const hand5 = cards7.filter((_,idx)=>idx!==a && idx!==b);
+  for (let a = 0; a < 7; a++) {
+    for (let b = a + 1; b < 7; b++) {
+      const hand5 = cards7.filter((_, idx) => idx !== a && idx !== b);
       const e = eval5PaiGow(hand5);
       if (!best || compareEval5(e, best) > 0) best = e;
     }
@@ -254,7 +280,7 @@ export function newPaiGowState() {
   };
 }
 
-export function dealPaiGow(state, betMain=0, betFortune=0) {
+export function dealPaiGow(state, betMain = 0, betFortune = 0) {
   state.betMain = betMain;
   state.betFortune = betFortune;
 
@@ -264,13 +290,13 @@ export function dealPaiGow(state, betMain=0, betFortune=0) {
   state.playerLowIdx = new Set();
   state.result = null;
 
-  for (let i=0;i<7;i++) state.player7.push(draw(state.shoe));
-  for (let i=0;i<7;i++) state.dealer7.push(draw(state.shoe));
+  for (let i = 0; i < 7; i++) state.player7.push(draw(state.shoe));
+  for (let i = 0; i < 7; i++) state.dealer7.push(draw(state.shoe));
 
   // Dealer sets by House Way
   const d = chooseHouseWaySplit(state.dealer7);
   state.dealerHigh = d.high;
-  state.dealerLow  = d.low;
+  state.dealerLow = d.low;
   state.dealerHiEval = d.hiEval;
   state.dealerLoEval = d.loEval;
 
@@ -282,37 +308,41 @@ export function canSetHands(state) {
 }
 
 export function buildPlayerHands(state) {
-  const hi = [...state.playerHighIdx].map(i => state.player7[i]);
-  const lo = [...state.playerLowIdx].map(i => state.player7[i]);
+  const hi = [...state.playerHighIdx].map((i) => state.player7[i]);
+  const lo = [...state.playerLowIdx].map((i) => state.player7[i]);
   return { hi, lo };
 }
 
 export function validatePlayerHands(state) {
-  if (!canSetHands(state)) return { ok:false, msg:"Select 5 cards for High and 2 for Low." };
+  if (!canSetHands(state))
+    return { ok: false, msg: "Select 5 cards for High and 2 for Low." };
 
   const { hi, lo } = buildPlayerHands(state);
   const hiEval = eval5PaiGow(hi);
   const loEval = evalLowAsEval5Vec(lo);
 
   if (compareEval5(hiEval, loEval) < 0) {
-    return { ok:false, msg:`Illegal set: Low (${lowName(lo)}) outranks High.` };
+    return {
+      ok: false,
+      msg: `Illegal set: Low (${lowName(lo)}) outranks High.`,
+    };
   }
-  return { ok:true, msg:"OK" };
+  return { ok: true, msg: "OK" };
 }
 
 // Used by Auto-Set button
-export function autoSetPlayerHouseWay(state){
+export function autoSetPlayerHouseWay(state) {
   const best = chooseHouseWaySplit(state.player7);
 
   // translate chosen cards to indices into player7
   const idxMap = new Map();
-  state.player7.forEach((c,i)=> idxMap.set(c, i)); // works because cards are object refs
+  state.player7.forEach((c, i) => idxMap.set(c, i)); // works because cards are object refs
 
-  state.playerHighIdx = new Set(best.high.map(c => idxMap.get(c)));
-  state.playerLowIdx  = new Set(best.low.map(c => idxMap.get(c)));
+  state.playerHighIdx = new Set(best.high.map((c) => idxMap.get(c)));
+  state.playerLowIdx = new Set(best.low.map((c) => idxMap.get(c)));
 }
 
-function sideCompareWithTieToDealer(cmp){
+function sideCompareWithTieToDealer(cmp) {
   // cmp: 1 player win, 0 tie, -1 lose
   // ties go to dealer => player only “wins” on cmp===1
   return cmp === 1 ? 1 : -1;
@@ -345,11 +375,15 @@ export function settlePaiGow(state) {
 
   state.result = {
     outcome,
-    pHigh, pLow,
-    pHighEval, dHighEval,
-    pLowEval, dLowEval,
-    hiCmpRaw, loCmpRaw,
-    fortune: { key: fk, pays: fortunePays }
+    pHigh,
+    pLow,
+    pHighEval,
+    dHighEval,
+    pLowEval,
+    dLowEval,
+    hiCmpRaw,
+    loCmpRaw,
+    fortune: { key: fk, pays: fortunePays },
   };
 
   state.phase = "DONE";

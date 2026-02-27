@@ -1,7 +1,20 @@
 // games/uth/uth.ui.js
 import { renderCards } from "../../core/cards.js";
-import { dealUTHRound, betPreflop, checkPreflop, betFlop, checkFlop, betRiver, foldRiver, resolveUTH } from "./uth.engine.js";
-import { loadUTHPayouts, saveUTHPayouts, payoutsTemplateHTML } from "./uth.payouts.js";
+import {
+  dealUTHRound,
+  betPreflop,
+  checkPreflop,
+  betFlop,
+  checkFlop,
+  betRiver,
+  foldRiver,
+  resolveUTH,
+} from "./uth.engine.js";
+import {
+  loadUTHPayouts,
+  saveUTHPayouts,
+  payoutsTemplateHTML,
+} from "./uth.payouts.js";
 
 export function mountUTH(mountEl, store) {
   mountEl.innerHTML = `
@@ -96,8 +109,10 @@ export function mountUTH(mountEl, store) {
     renderCards(el.d, state.live.dealer, dealerFaceDown);
 
     const boardCards = [];
-    if (state.live.flopRevealed) boardCards.push(...state.live.board.slice(0,3));
-    if (state.live.riverRevealed) boardCards.push(...state.live.board.slice(3,5));
+    if (state.live.flopRevealed)
+      boardCards.push(...state.live.board.slice(0, 3));
+    if (state.live.riverRevealed)
+      boardCards.push(...state.live.board.slice(3, 5));
     renderCards(el.b, boardCards, false);
   }
 
@@ -126,7 +141,11 @@ export function mountUTH(mountEl, store) {
 
       const payouts = (await loadUTHPayouts(store)).value;
 
-      const { roundId, live } = await dealUTHRound(store, { ante, trips, payouts });
+      const { roundId, live } = await dealUTHRound(store, {
+        ante,
+        trips,
+        payouts,
+      });
       state.roundId = roundId;
       state.live = live;
 
@@ -140,7 +159,9 @@ export function mountUTH(mountEl, store) {
 
       render();
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   });
 
   async function onPreflopBet(mult) {
@@ -148,7 +169,9 @@ export function mountUTH(mountEl, store) {
       await betPreflop(store, state.roundId, state.live, mult);
       render();
       await doResolve();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   function onPreflopCheck() {
@@ -161,7 +184,9 @@ export function mountUTH(mountEl, store) {
         { label: "Bet 2x", kind: "ok", onClick: () => onFlopBet() },
       ]);
       render();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   async function onFlopBet() {
@@ -169,7 +194,9 @@ export function mountUTH(mountEl, store) {
       await betFlop(store, state.roundId, state.live);
       render();
       await doResolve();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   function onFlopCheck() {
@@ -182,7 +209,9 @@ export function mountUTH(mountEl, store) {
         { label: "Bet 1x", kind: "ok", onClick: () => onRiverBet() },
       ]);
       render();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   async function onRiverBet() {
@@ -190,7 +219,9 @@ export function mountUTH(mountEl, store) {
       await betRiver(store, state.roundId, state.live);
       render();
       await doResolve();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   async function onRiverFold() {
@@ -210,7 +241,9 @@ export function mountUTH(mountEl, store) {
       state.roundId = null;
       state.live = null;
       await store.uiRefresh?.();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   }
 
   async function doResolve() {

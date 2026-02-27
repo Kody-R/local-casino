@@ -5,11 +5,10 @@ import {
   availableActions,
   step,
   handValue,
-  cardToString
+  cardToString,
 } from "./spanish21.engine.js";
 
 import { renderCards, renderCardBack } from "../../core/cards.js";
-
 
 export function mountSpanish21(rootEl, store) {
   rootEl.innerHTML = `
@@ -72,37 +71,36 @@ export function mountSpanish21(rootEl, store) {
   }
 
   function renderDealer() {
-  if (!state.dealer.length) {
-    dealerEl.innerHTML = "";
-    dealerInfoEl.textContent = "";
-    return;
+    if (!state.dealer.length) {
+      dealerEl.innerHTML = "";
+      dealerInfoEl.textContent = "";
+      return;
+    }
+
+    if (state.stage === "PLAYER") {
+      // Show first card face up, second card face down
+      const row = document.createElement("div");
+      row.className = "s21-cards";
+      dealerEl.innerHTML = "";
+      dealerEl.appendChild(row);
+
+      // up card
+      const up = document.createElement("div");
+      row.appendChild(up);
+      renderCards(up, [state.dealer[0]], false);
+
+      // down card
+      const down = document.createElement("div");
+      row.appendChild(down);
+      renderCardBack(down, 1);
+
+      dealerInfoEl.textContent = `Showing: ${handValue([state.dealer[0]]).total}`;
+    } else {
+      renderCards(dealerEl, state.dealer, false);
+      const dv = handValue(state.dealer);
+      dealerInfoEl.textContent = `Total: ${dv.total}${dv.isSoft ? " (soft)" : ""}`;
+    }
   }
-
-  if (state.stage === "PLAYER") {
-    // Show first card face up, second card face down
-    const row = document.createElement("div");
-    row.className = "s21-cards";
-    dealerEl.innerHTML = "";
-    dealerEl.appendChild(row);
-
-    // up card
-    const up = document.createElement("div");
-    row.appendChild(up);
-    renderCards(up, [state.dealer[0]], false);
-
-    // down card
-    const down = document.createElement("div");
-    row.appendChild(down);
-    renderCardBack(down, 1);
-
-    dealerInfoEl.textContent = `Showing: ${handValue([state.dealer[0]]).total}`;
-  } else {
-    renderCards(dealerEl, state.dealer, false);
-    const dv = handValue(state.dealer);
-    dealerInfoEl.textContent = `Total: ${dv.total}${dv.isSoft ? " (soft)" : ""}`;
-  }
-}
-
 
   function render() {
     // Dealer view: hide hole card during PLAYER stage
@@ -111,37 +109,41 @@ export function mountSpanish21(rootEl, store) {
     // Player hands
     playerEl.innerHTML = "";
 
-state.hands.forEach((hand, idx) => {
-  const v = handValue(hand);
-  const active = (state.stage === "PLAYER" && idx === state.active);
+    state.hands.forEach((hand, idx) => {
+      const v = handValue(hand);
+      const active = state.stage === "PLAYER" && idx === state.active;
 
-  const wrap = document.createElement("div");
-  wrap.className = `s21-hand ${active ? "is-active" : ""}`;
-  wrap.innerHTML = `
+      const wrap = document.createElement("div");
+      wrap.className = `s21-hand ${active ? "is-active" : ""}`;
+      wrap.innerHTML = `
     <div class="s21-hand-head">
       <div>Hand ${idx + 1} — Bet $${state.bets[idx] ?? 0}</div>
       <div>Total: ${v.total}${v.isSoft ? " (soft)" : ""}</div>
     </div>
   `;
 
-  const cardsRow = document.createElement("div");
-  cardsRow.className = "s21-cards";
-  wrap.appendChild(cardsRow);
+      const cardsRow = document.createElement("div");
+      cardsRow.className = "s21-cards";
+      wrap.appendChild(cardsRow);
 
-  renderCards(cardsRow, hand, false);
+      renderCards(cardsRow, hand, false);
 
-  playerEl.appendChild(wrap);
-});
-
+      playerEl.appendChild(wrap);
+    });
 
     // Actions
     const acts = availableActions(state);
-    const actMap = { HIT:false, STAND:false, DOUBLE:false, SPLIT:false };
-    acts.forEach(a => (actMap[a] = true));
+    const actMap = { HIT: false, STAND: false, DOUBLE: false, SPLIT: false };
+    acts.forEach((a) => (actMap[a] = true));
 
     // If not in player stage, disable all
     if (state.stage !== "PLAYER") {
-      setActionEnabled({ HIT:false, STAND:false, DOUBLE:false, SPLIT:false });
+      setActionEnabled({
+        HIT: false,
+        STAND: false,
+        DOUBLE: false,
+        SPLIT: false,
+      });
     } else {
       // Disable DOUBLE/SPLIT if user can't afford required extra bet
       // DOUBLE requires +current bet; SPLIT requires +current bet
@@ -175,18 +177,21 @@ state.hands.forEach((hand, idx) => {
     // Engine net values are: -bet, 0, +bet, +1.5*bet
     // So credit = bet + net when net >= 0 else 0.
     let credit = 0;
-    state.results.forEach(r => {
+    state.results.forEach((r) => {
       const bet = state.bets[r.idx];
-      if (r.net >= 0) credit += (bet + r.net);
+      if (r.net >= 0) credit += bet + r.net;
     });
     store.balance += credit;
     store.render?.();
 
-    const lines = state.results.map(r => {
+    const lines = state.results.map((r) => {
       const bet = state.bets[r.idx];
-      const label = r.outcome === "WIN" ? `WIN +$${r.net}` :
-                    r.outcome === "PUSH" ? `PUSH (return $${bet})` :
-                    `LOSE -$${bet}`;
+      const label =
+        r.outcome === "WIN"
+          ? `WIN +$${r.net}`
+          : r.outcome === "PUSH"
+            ? `PUSH (return $${bet})`
+            : `LOSE -$${bet}`;
       return `Hand ${r.idx + 1}: ${label} — ${r.reason}`;
     });
 
@@ -198,8 +203,14 @@ state.hands.forEach((hand, idx) => {
     if (state.stage !== "BET") return;
 
     const bet = Math.floor(Number(betEl.value || 0));
-    if (bet < 1) { msgEl.textContent = "Bet must be at least 1."; return; }
-    if (store.balance < bet) { msgEl.textContent = "Not enough balance."; return; }
+    if (bet < 1) {
+      msgEl.textContent = "Bet must be at least 1.";
+      return;
+    }
+    if (store.balance < bet) {
+      msgEl.textContent = "Not enough balance.";
+      return;
+    }
 
     // Deduct initial bet
     store.balance -= bet;
@@ -235,12 +246,18 @@ state.hands.forEach((hand, idx) => {
 
     // Handle extra wagers for DOUBLE/SPLIT up front
     if (action === "DOUBLE") {
-      if (store.balance < curBet) { msgEl.textContent = "Not enough balance to Double."; return; }
+      if (store.balance < curBet) {
+        msgEl.textContent = "Not enough balance to Double.";
+        return;
+      }
       store.balance -= curBet;
       store.render?.();
     }
     if (action === "SPLIT") {
-      if (store.balance < curBet) { msgEl.textContent = "Not enough balance to Split."; return; }
+      if (store.balance < curBet) {
+        msgEl.textContent = "Not enough balance to Split.";
+        return;
+      }
       store.balance -= curBet;
       store.render?.();
     }

@@ -1,7 +1,7 @@
 // games/threecard/threecard.payouts.js
 const DEFAULT = {
   pairPlus: { SF: 40, TK: 30, ST: 6, FL: 3, PR: 1 },
-  sixCard:  { RF: 1000, SF: 200, FK: 50, FH: 25, FL: 15, ST: 10, TK: 7 },
+  sixCard: { RF: 1000, SF: 200, FK: 50, FH: 25, FL: 15, ST: 10, TK: 7 },
 };
 
 export function payoutsTemplateHTML() {
@@ -49,7 +49,7 @@ export async function loadThreeCardPayouts(store) {
       root.querySelector("#sc_fl").value = value.sixCard.FL;
       root.querySelector("#sc_st").value = value.sixCard.ST;
       root.querySelector("#sc_tk").value = value.sixCard.TK;
-    }
+    },
   };
 }
 
@@ -71,7 +71,7 @@ export async function saveThreeCardPayouts(store, root) {
       FL: Number(root.querySelector("#sc_fl").value || 0),
       ST: Number(root.querySelector("#sc_st").value || 0),
       TK: Number(root.querySelector("#sc_tk").value || 0),
-    }
+    },
   };
 
   await store.setSetting(key, value);

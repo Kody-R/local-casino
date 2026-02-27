@@ -34,38 +34,38 @@ async function loadGame(gameKey) {
     const mod = await import("./games/slots/slots.ui.js");
     mod.mountSlots(els.gameMount, store);
   } else if (gameKey === "missstud") {
-  const mod = await import("./games/missstud/missstud.ui.js");
-  mod.mountMissStud(els.gameMount, store);
+    const mod = await import("./games/missstud/missstud.ui.js");
+    mod.mountMissStud(els.gameMount, store);
   } else if (gameKey === "djwild") {
-  const mod = await import("./games/djwild/djwild.ui.js");
-  mod.mountDJWild(els.gameMount, store);
+    const mod = await import("./games/djwild/djwild.ui.js");
+    mod.mountDJWild(els.gameMount, store);
   } else if (gameKey === "baccarat") {
-  const mod = await import("./games/baccarat/baccarat.ui.js");
-  mod.mountBaccarat(els.gameMount, store);
+    const mod = await import("./games/baccarat/baccarat.ui.js");
+    mod.mountBaccarat(els.gameMount, store);
   } else if (gameKey === "paigow") {
-  const mod = await import("./games/paigow/paigow.ui.js");
-  mod.mountPaiGow(els.gameMount, store);
+    const mod = await import("./games/paigow/paigow.ui.js");
+    mod.mountPaiGow(els.gameMount, store);
   } else if (gameKey === "horserace") {
-  const mod = await import("./games/horserace/horserace.ui.js");
-  mod.mountHorseRacing(els.gameMount, store); 
+    const mod = await import("./games/horserace/horserace.ui.js");
+    mod.mountHorseRacing(els.gameMount, store);
   } else if (gameKey === "caribbeanstud") {
-  const mod = await import("./games/caribbeanstud/caribbeanstud.ui.js");
-  mod.mountCaribbeanStud(els.gameMount, store);
- } else if (gameKey === "spanish21") {
-  const mod = await import("./games/spanish21/spanish21.ui.js");
-  mod.mountSpanish21(els.gameMount, store); }
-  else if (gameKey === "threeshot") {
+    const mod = await import("./games/caribbeanstud/caribbeanstud.ui.js");
+    mod.mountCaribbeanStud(els.gameMount, store);
+  } else if (gameKey === "spanish21") {
+    const mod = await import("./games/spanish21/spanish21.ui.js");
+    mod.mountSpanish21(els.gameMount, store);
+  } else if (gameKey === "threeshot") {
     const mod = await import("./games/threeshot/threeshot.ui.js");
-    mod.mountThreeShot(els.gameMount, store); }
-  else if (gameKey === "aroundtheworld") {
-  const mod = await import("./games/aroundtheworld/aroundtheworld.ui.js");
-  mod.mountAroundTheWorld(els.gameMount, store);}
-  else if (gameKey === "bonusbowling") {
-  const mod = await import("./games/bonusbowling/bonusbowling.ui.js");
-  mod.mountBonusBowling(els.gameMount, store);}
-  else {
-        els.gameMount.textContent = "Unknown game.";
-      }
+    mod.mountThreeShot(els.gameMount, store);
+  } else if (gameKey === "aroundtheworld") {
+    const mod = await import("./games/aroundtheworld/aroundtheworld.ui.js");
+    mod.mountAroundTheWorld(els.gameMount, store);
+  } else if (gameKey === "bonusbowling") {
+    const mod = await import("./games/bonusbowling/bonusbowling.ui.js");
+    mod.mountBonusBowling(els.gameMount, store);
+  } else {
+    els.gameMount.textContent = "Unknown game.";
+  }
 }
 
 async function init() {

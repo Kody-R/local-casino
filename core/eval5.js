@@ -1,8 +1,8 @@
 // core/eval5.js
 // 5-card evaluator + best 5-of-6 evaluator (for 6 Card Bonus, later UTH/Crazy4 helpers)
 
-const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
-const RANK_VALUE = Object.fromEntries(RANKS.map((r,i)=>[r,i+2])); // 2..14
+const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
+const RANK_VALUE = Object.fromEntries(RANKS.map((r, i) => [r, i + 2])); // 2..14
 
 function combinations6Choose5(cards6) {
   // 6 combos by dropping each index once
@@ -19,20 +19,22 @@ function combinations6Choose5(cards6) {
  * vec: lexicographic vector, first element is category weight
  */
 export function eval5(cards) {
-  const valsDesc = cards.map(c => RANK_VALUE[c.r]).sort((a,b)=>b-a);
-  const suits = cards.map(c => c.s);
-  const isFlush = suits.every(s => s === suits[0]);
+  const valsDesc = cards.map((c) => RANK_VALUE[c.r]).sort((a, b) => b - a);
+  const suits = cards.map((c) => c.s);
+  const isFlush = suits.every((s) => s === suits[0]);
 
   // counts
   const counts = new Map();
   for (const v of valsDesc) counts.set(v, (counts.get(v) || 0) + 1);
 
   // groups sorted by count desc then rank desc
-  const groups = [...counts.entries()].sort((a,b)=> b[1]-a[1] || b[0]-a[0]);
-  const distinctDesc = [...counts.keys()].sort((a,b)=>b-a);
+  const groups = [...counts.entries()].sort(
+    (a, b) => b[1] - a[1] || b[0] - a[0],
+  );
+  const distinctDesc = [...counts.keys()].sort((a, b) => b - a);
 
   // straight detection (A-5 wheel)
-  const uniqAsc = [...new Set(valsDesc)].sort((a,b)=>a-b);
+  const uniqAsc = [...new Set(valsDesc)].sort((a, b) => a - b);
   let isStraight = false;
   let straightHigh = 0;
 
@@ -41,7 +43,10 @@ export function eval5(cards) {
     straightHigh = uniqAsc[4];
   }
   // wheel: A,2,3,4,5
-  if (uniqAsc.length === 5 && JSON.stringify(uniqAsc) === JSON.stringify([2,3,4,5,14])) {
+  if (
+    uniqAsc.length === 5 &&
+    JSON.stringify(uniqAsc) === JSON.stringify([2, 3, 4, 5, 14])
+  ) {
     isStraight = true;
     straightHigh = 5;
   }
@@ -71,7 +76,7 @@ export function eval5(cards) {
   // trips
   if (groups[0][1] === 3) {
     const trips = groups[0][0];
-    const kickers = distinctDesc.filter(v => v !== trips);
+    const kickers = distinctDesc.filter((v) => v !== trips);
     return { code: "TK", vec: [4, trips, ...kickers] };
   }
 
@@ -86,7 +91,7 @@ export function eval5(cards) {
   // one pair
   if (groups[0][1] === 2) {
     const pair = groups[0][0];
-    const kickers = distinctDesc.filter(v => v !== pair);
+    const kickers = distinctDesc.filter((v) => v !== pair);
     return { code: "PR", vec: [2, pair, ...kickers] };
   }
 
@@ -95,7 +100,8 @@ export function eval5(cards) {
 }
 
 export function compareEval5(a, b) {
-  const A = a.vec, B = b.vec;
+  const A = a.vec,
+    B = b.vec;
   const len = Math.max(A.length, B.length);
   for (let i = 0; i < len; i++) {
     const av = A[i] ?? 0;
@@ -122,7 +128,8 @@ export function evalBest5of6(cards6) {
 
 // core/eval5.js  (ADD THIS)
 export function evalBest5of7(cards7) {
-  if (!cards7 || cards7.length !== 7) throw new Error("evalBest5of7 expects 7 cards");
+  if (!cards7 || cards7.length !== 7)
+    throw new Error("evalBest5of7 expects 7 cards");
   let best = null;
 
   // 7 choose 5 = 21 combos (drop i and j)

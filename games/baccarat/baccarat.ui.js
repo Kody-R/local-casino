@@ -3,23 +3,29 @@ import { renderCards } from "../../core/cards.js";
 import { BAC_PAYOUTS } from "./baccarat.payouts.js";
 import { newBaccaratShoe, dealBaccaratRound } from "./baccarat.engine.js";
 
-function fmt(n){ return new Intl.NumberFormat().format(n); }
+function fmt(n) {
+  return new Intl.NumberFormat().format(n);
+}
 
 const BEAD_ROWS = 6;
 const MAX_BEAD = 6 * 20; // 20 cols visible
-const MAX_BIG  = 6 * 20;
+const MAX_BIG = 6 * 20;
 
 function beadKey(w) {
   return w === "PLAYER" ? "P" : w === "BANKER" ? "B" : "T";
 }
 
 function loadJSON(s, fallback) {
-  try { return JSON.parse(s); } catch { return fallback; }
+  try {
+    return JSON.parse(s);
+  } catch {
+    return fallback;
+  }
 }
 
 // Big Road: streak columns; ties add a marker on last cell.
 function bigRoadAdd(big, winner) {
-  if (!big.length) big.push({ col:0, row:0, w:winner, ties:0 });
+  if (!big.length) big.push({ col: 0, row: 0, w: winner, ties: 0 });
   const last = big[big.length - 1];
 
   if (winner === "TIE") {
@@ -30,15 +36,15 @@ function bigRoadAdd(big, winner) {
   if (last.w === winner) {
     // try to go down
     const nextRow = last.row + 1;
-    const exists = big.some(x => x.col === last.col && x.row === nextRow);
+    const exists = big.some((x) => x.col === last.col && x.row === nextRow);
     if (!exists && nextRow < BEAD_ROWS) {
-      big.push({ col:last.col, row:nextRow, w:winner, ties:0 });
+      big.push({ col: last.col, row: nextRow, w: winner, ties: 0 });
     } else {
-      big.push({ col:last.col + 1, row:last.row, w:winner, ties:0 });
+      big.push({ col: last.col + 1, row: last.row, w: winner, ties: 0 });
     }
   } else {
     // new column
-    big.push({ col:last.col + 1, row:0, w:winner, ties:0 });
+    big.push({ col: last.col + 1, row: 0, w: winner, ties: 0 });
   }
 }
 
@@ -69,7 +75,7 @@ export function mountBaccarat(mountEl, store) {
         <div class="mono" style="white-space:pre-wrap;margin-top:8px;">
 MAIN:
 Player: 1:1
-Banker: 1:1 less ${(BAC_PAYOUTS.BANKER.commission*100).toFixed(0)}% commission
+Banker: 1:1 less ${(BAC_PAYOUTS.BANKER.commission * 100).toFixed(0)}% commission
 Tie: ${BAC_PAYOUTS.TIE.pay}:1
 
 SIDES:
@@ -149,15 +155,19 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
       const b1 = await store.getSetting?.("BAC_BEAD");
       const b2 = await store.getSetting?.("BAC_BIG");
       bead = b1 ? loadJSON(b1, []) : [];
-      big  = b2 ? loadJSON(b2, []) : [];
+      big = b2 ? loadJSON(b2, []) : [];
     } catch {
-      bead = []; big = [];
+      bead = [];
+      big = [];
     }
   }
 
   async function saveRoads() {
     try {
-      await store.setSetting?.("BAC_BEAD", JSON.stringify(bead.slice(-MAX_BEAD)));
+      await store.setSetting?.(
+        "BAC_BEAD",
+        JSON.stringify(bead.slice(-MAX_BEAD)),
+      );
       await store.setSetting?.("BAC_BIG", JSON.stringify(big.slice(-MAX_BIG)));
     } catch {}
   }
@@ -170,31 +180,32 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
     el.bead.style.gridTemplateColumns = `repeat(${cols}, 22px)`;
     el.bead.style.gridTemplateRows = `repeat(${BEAD_ROWS}, 22px)`;
 
-    for (let i=0;i<cols*BEAD_ROWS;i++){
+    for (let i = 0; i < cols * BEAD_ROWS; i++) {
       const div = document.createElement("div");
       div.className = "roadCell";
       const v = cells[i];
-      if (v) div.classList.add(v === "P" ? "roadP" : v === "B" ? "roadB" : "roadT");
+      if (v)
+        div.classList.add(v === "P" ? "roadP" : v === "B" ? "roadB" : "roadT");
       el.bead.appendChild(div);
     }
 
     // big road
     el.big.innerHTML = "";
-    const maxCol = big.reduce((m,x)=>Math.max(m,x.col),0);
-    const bigCols = Math.max(1, Math.min(20, maxCol+1));
+    const maxCol = big.reduce((m, x) => Math.max(m, x.col), 0);
+    const bigCols = Math.max(1, Math.min(20, maxCol + 1));
     el.big.style.gridTemplateColumns = `repeat(${bigCols}, 22px)`;
     el.big.style.gridTemplateRows = `repeat(${BEAD_ROWS}, 22px)`;
 
     // map for quick access
-    const map = new Map(big.map(x => [`${x.col},${x.row}`, x]));
-    for (let c=0;c<bigCols;c++){
-      for (let r=0;r<BEAD_ROWS;r++){
+    const map = new Map(big.map((x) => [`${x.col},${x.row}`, x]));
+    for (let c = 0; c < bigCols; c++) {
+      for (let r = 0; r < BEAD_ROWS; r++) {
         const div = document.createElement("div");
         div.className = "roadCell";
         const node = map.get(`${c},${r}`);
-        if (node){
+        if (node) {
           div.classList.add(node.w === "PLAYER" ? "roadP" : "roadB");
-          if (node.ties){
+          if (node.ties) {
             div.innerHTML = `<span class="tieMark">${node.ties}</span>`;
           }
         }
@@ -203,7 +214,7 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
     }
   }
 
-  function updateShoeUI(outcome=null){
+  function updateShoeUI(outcome = null) {
     el.rem.textContent = String(shoe.cards.length);
     el.shuf.style.display = shoe.needsShuffle ? "inline-flex" : "none";
   }
@@ -226,15 +237,15 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
     try {
       if (!store.currentPlayerId) throw new Error("Select a player first.");
 
-      const betP  = intVal(el.p);
-      const betB  = intVal(el.b);
-      const betT  = intVal(el.t);
+      const betP = intVal(el.p);
+      const betB = intVal(el.b);
+      const betT = intVal(el.t);
       const betPP = intVal(el.pp);
       const betBP = intVal(el.bp);
       const betP8 = intVal(el.p8);
       const betD7 = intVal(el.d7);
 
-      if ((betP + betB + betT + betPP + betBP + betP8 + betD7) <= 0) {
+      if (betP + betB + betT + betPP + betBP + betP8 + betD7 <= 0) {
         throw new Error("Enter at least one bet.");
       }
 
@@ -273,37 +284,82 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
       // - If winner BANKER: BANKER wins (commission), PLAYER loses, TIE loses
       // - If winner TIE: TIE wins, PLAYER/BANKER push
       if (betP > 0) {
-        if (out.winner === "PLAYER") await store.settle(round.id, "PLAYER", "WIN", betP * BAC_PAYOUTS.PLAYER.pay, 0);
-        else if (out.winner === "TIE") await store.settle(round.id, "PLAYER", "PUSH", 0, betP);
+        if (out.winner === "PLAYER")
+          await store.settle(
+            round.id,
+            "PLAYER",
+            "WIN",
+            betP * BAC_PAYOUTS.PLAYER.pay,
+            0,
+          );
+        else if (out.winner === "TIE")
+          await store.settle(round.id, "PLAYER", "PUSH", 0, betP);
         else await store.settle(round.id, "PLAYER", "LOSE", 0, 0);
       }
 
       if (betB > 0) {
-        if (out.winner === "BANKER") await store.settle(round.id, "BANKER", "WIN", profitBanker(betB), 0);
-        else if (out.winner === "TIE") await store.settle(round.id, "BANKER", "PUSH", 0, betB);
+        if (out.winner === "BANKER")
+          await store.settle(round.id, "BANKER", "WIN", profitBanker(betB), 0);
+        else if (out.winner === "TIE")
+          await store.settle(round.id, "BANKER", "PUSH", 0, betB);
         else await store.settle(round.id, "BANKER", "LOSE", 0, 0);
       }
 
       if (betT > 0) {
-        if (out.winner === "TIE") await store.settle(round.id, "TIE", "WIN", betT * BAC_PAYOUTS.TIE.pay, 0);
+        if (out.winner === "TIE")
+          await store.settle(
+            round.id,
+            "TIE",
+            "WIN",
+            betT * BAC_PAYOUTS.TIE.pay,
+            0,
+          );
         else await store.settle(round.id, "TIE", "LOSE", 0, 0);
       }
 
       // Side bets:
       if (betPP > 0) {
-        if (out.playerPair) await store.settle(round.id, "PLAYER_PAIR", "WIN", betPP * BAC_PAYOUTS.PLAYER_PAIR.pay, 0);
+        if (out.playerPair)
+          await store.settle(
+            round.id,
+            "PLAYER_PAIR",
+            "WIN",
+            betPP * BAC_PAYOUTS.PLAYER_PAIR.pay,
+            0,
+          );
         else await store.settle(round.id, "PLAYER_PAIR", "LOSE", 0, 0);
       }
       if (betBP > 0) {
-        if (out.bankerPair) await store.settle(round.id, "BANKER_PAIR", "WIN", betBP * BAC_PAYOUTS.BANKER_PAIR.pay, 0);
+        if (out.bankerPair)
+          await store.settle(
+            round.id,
+            "BANKER_PAIR",
+            "WIN",
+            betBP * BAC_PAYOUTS.BANKER_PAIR.pay,
+            0,
+          );
         else await store.settle(round.id, "BANKER_PAIR", "LOSE", 0, 0);
       }
       if (betP8 > 0) {
-        if (out.panda8) await store.settle(round.id, "PANDA_8", "WIN", betP8 * BAC_PAYOUTS.PANDA_8.pay, 0);
+        if (out.panda8)
+          await store.settle(
+            round.id,
+            "PANDA_8",
+            "WIN",
+            betP8 * BAC_PAYOUTS.PANDA_8.pay,
+            0,
+          );
         else await store.settle(round.id, "PANDA_8", "LOSE", 0, 0);
       }
       if (betD7 > 0) {
-        if (out.dragon7) await store.settle(round.id, "DRAGON_7", "WIN", betD7 * BAC_PAYOUTS.DRAGON_7.pay, 0);
+        if (out.dragon7)
+          await store.settle(
+            round.id,
+            "DRAGON_7",
+            "WIN",
+            betD7 * BAC_PAYOUTS.DRAGON_7.pay,
+            0,
+          );
         else await store.settle(round.id, "DRAGON_7", "LOSE", 0, 0);
       }
 
@@ -313,7 +369,10 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
       // result line
       const pieces = [];
       pieces.push(`Winner: ${out.winner}`);
-      if (out.winner === "BANKER" && betB > 0) pieces.push(`Banker commission ${(BAC_PAYOUTS.BANKER.commission*100).toFixed(0)}%`);
+      if (out.winner === "BANKER" && betB > 0)
+        pieces.push(
+          `Banker commission ${(BAC_PAYOUTS.BANKER.commission * 100).toFixed(0)}%`,
+        );
       if (out.playerPair) pieces.push("Player Pair");
       if (out.bankerPair) pieces.push("Banker Pair");
       if (out.panda8) pieces.push("Panda 8");
@@ -323,7 +382,6 @@ Dragon 7: ${BAC_PAYOUTS.DRAGON_7.pay}:1
       el.detail.textContent = pieces.join(" • ");
 
       updateShoeUI(out);
-
     } catch (e) {
       alert(e.message);
     }

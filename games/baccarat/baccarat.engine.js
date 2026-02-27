@@ -4,7 +4,7 @@ import { freshShoe, draw } from "../../core/cards.js";
 export function newBaccaratShoe({ decks = 8, cutCards = 52 } = {}) {
   const shoe = {
     decks,
-    cutCards,     // reshuffle when remaining <= cutCards
+    cutCards, // reshuffle when remaining <= cutCards
     cards: freshShoe(decks),
     needsShuffle: false,
   };
@@ -63,7 +63,7 @@ export function dealBaccaratRound(shoe) {
   const p2 = baccaratTotal(player);
   const b2 = baccaratTotal(banker);
 
-  const natural = (p2 >= 8) || (b2 >= 8);
+  const natural = p2 >= 8 || b2 >= 8;
 
   let playerThird = null;
   let bankerThird = null;
@@ -94,15 +94,9 @@ export function dealBaccaratRound(shoe) {
   const playerPair = isPair2(player);
   const bankerPair = isPair2(banker);
 
-  const panda8 =
-    (winner === "PLAYER") &&
-    (player.length === 3) &&
-    (pFinal === 8);
+  const panda8 = winner === "PLAYER" && player.length === 3 && pFinal === 8;
 
-  const dragon7 =
-    (winner === "BANKER") &&
-    (banker.length === 3) &&
-    (bFinal === 7);
+  const dragon7 = winner === "BANKER" && banker.length === 3 && bFinal === 7;
 
   updateShuffleFlag(shoe);
 

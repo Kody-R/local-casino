@@ -5,7 +5,8 @@ function clampInt(n, min, max) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, n));
 }
-function randInt(rng, a, b) { // inclusive
+function randInt(rng, a, b) {
+  // inclusive
   return a + Math.floor(rng() * (b - a + 1));
 }
 
@@ -31,7 +32,7 @@ export const PAYTABLE = {
 export const DEFAULT_MODEL = {
   // weights for first ball pins 0..10
   // higher weights near 0-6 makes “bad”
-  firstBallWeights: [8,8,8,8,7,6,5,3,2,1,0.5],
+  firstBallWeights: [8, 8, 8, 8, 7, 6, 5, 3, 2, 1, 0.5],
   // for second ball, scale by remaining pins; we’ll reweight toward small results
   secondBallBias: 1.6, // >1 biases low
 };
@@ -72,7 +73,10 @@ function rollFromCategory(rng, cat) {
   return { p1, p2, total, kind: "OPEN" };
 }
 
-export function newBonusBowlingState({ rng = Math.random, model = DEFAULT_MODEL } = {}) {
+export function newBonusBowlingState({
+  rng = Math.random,
+  model = DEFAULT_MODEL,
+} = {}) {
   return {
     game: "bonus-bowling",
     rng,
@@ -88,8 +92,8 @@ export function newBonusBowlingState({ rng = Math.random, model = DEFAULT_MODEL 
     sessionFrames: 10,
     sessionFrameIndex: 1, // 1..sessionFrames
     sessionTotalBet: 0,
-    sessionTotalWin: 0,   // profit (includes golden)
-    sessionLog: [],       // [{frame,isGolden,kind,total,bet,win,goldenBonus}]
+    sessionTotalWin: 0, // profit (includes golden)
+    sessionLog: [], // [{frame,isGolden,kind,total,bet,win,goldenBonus}]
 
     // bets for the current frame (amounts by bet type)
     bets: {
@@ -128,16 +132,19 @@ function classify(p1, p2) {
 function isWinningBet(betType, roll) {
   if (betType === "STRIKE") return roll.kind === "STRIKE";
   if (betType === "SPARE") return roll.kind === "SPARE";
-  if (betType === "RANGE_0_3") return roll.kind === "OPEN" && roll.total >= 0 && roll.total <= 3;
-  if (betType === "RANGE_4_6") return roll.kind === "OPEN" && roll.total >= 4 && roll.total <= 6;
-  if (betType === "RANGE_7_9") return roll.kind === "OPEN" && roll.total >= 7 && roll.total <= 9;
+  if (betType === "RANGE_0_3")
+    return roll.kind === "OPEN" && roll.total >= 0 && roll.total <= 3;
+  if (betType === "RANGE_4_6")
+    return roll.kind === "OPEN" && roll.total >= 4 && roll.total <= 6;
+  if (betType === "RANGE_7_9")
+    return roll.kind === "OPEN" && roll.total >= 7 && roll.total <= 9;
   return false;
 }
 
 export function resolveFrame(state) {
   if (state.phase !== "BETTING") return state;
 
-  const isGolden = (state.frameNumber % 3 === 0); // 1 out of 3
+  const isGolden = state.frameNumber % 3 === 0; // 1 out of 3
 
   const cat = pickCategory(state.rng);
   const roll = rollFromCategory(state.rng, cat);
@@ -168,7 +175,13 @@ export function resolveFrame(state) {
     totalPayout += goldenBonus;
   }
 
-  const message = buildMessage(roll, isGolden, settlements, goldenBonus, totalPayout);
+  const message = buildMessage(
+    roll,
+    isGolden,
+    settlements,
+    goldenBonus,
+    totalPayout,
+  );
 
   return {
     ...state,
@@ -185,12 +198,17 @@ export function resolveFrame(state) {
 
 function buildMessage(roll, isGolden, settlements, goldenBonus, totalPayout) {
   const head = isGolden ? "GOLDEN FRAME! " : "";
-  const kindText = roll.kind === "STRIKE" ? "STRIKE" : roll.kind === "SPARE" ? "SPARE" : `OPEN ${roll.total}`;
+  const kindText =
+    roll.kind === "STRIKE"
+      ? "STRIKE"
+      : roll.kind === "SPARE"
+        ? "SPARE"
+        : `OPEN ${roll.total}`;
   const base = `${head}${kindText} (${roll.p1}+${roll.p2}).`;
 
   if (!settlements.length) return base + " No bets placed.";
 
-  const wins = settlements.filter(s => s.win).length;
+  const wins = settlements.filter((s) => s.win).length;
   const bonus = goldenBonus > 0 ? ` Golden bonus +${goldenBonus}.` : "";
   return `${base} Winning bets: ${wins}. Total win +${totalPayout}.${bonus}`;
 }
@@ -208,14 +226,24 @@ export function nextFrame(state) {
     goldenBonus: 0,
     totalBet: 0,
     totalPayout: 0,
-    bets: { ...state.bets, RANGE_0_3: 0, RANGE_4_6: 0, RANGE_7_9: 0, SPARE: 0, STRIKE: 0 },
+    bets: {
+      ...state.bets,
+      RANGE_0_3: 0,
+      RANGE_4_6: 0,
+      RANGE_7_9: 0,
+      SPARE: 0,
+      STRIKE: 0,
+    },
   };
 }
 
 export function setSession(state, { enabled, frames }) {
   if (state.phase !== "BETTING" && state.phase !== "RESULT") return state;
   const sessionMode = !!enabled;
-  const sessionFrames = Math.max(1, Math.min(100, Math.floor(Number(frames) || 10)));
+  const sessionFrames = Math.max(
+    1,
+    Math.min(100, Math.floor(Number(frames) || 10)),
+  );
   return { ...state, sessionMode, sessionFrames };
 }
 
@@ -272,6 +300,8 @@ export function advanceSessionFrame(state) {
   return {
     ...base,
     sessionFrameIndex: state.sessionMode ? nextIndex : state.sessionFrameIndex,
-    message: state.sessionMode ? `Place your bets for Frame ${nextIndex}.` : base.message,
+    message: state.sessionMode
+      ? `Place your bets for Frame ${nextIndex}.`
+      : base.message,
   };
 }

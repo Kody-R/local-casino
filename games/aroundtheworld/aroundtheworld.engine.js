@@ -6,7 +6,8 @@ function clampInt(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function randInt(rng, a, b) { // inclusive
+function randInt(rng, a, b) {
+  // inclusive
   return a + Math.floor(rng() * (b - a + 1));
 }
 
@@ -37,19 +38,19 @@ export function newATWState({ rng = Math.random } = {}) {
     phase: "BETTING", // BETTING -> PLAYING -> LEVEL_END -> GAME_OVER -> CASHED
     message: "Place your wager to start Around the World.",
 
-    wager: 0,              // initial wager (level 1 bet)
-    level: 1,              // 1..4
-    step: 1,               // 1..7
-    strikes: 0,            // strikes in current level (0..2)
-    prevNumber: null,      // last number drawn (1..49)
+    wager: 0, // initial wager (level 1 bet)
+    level: 1, // 1..4
+    step: 1, // 1..7
+    strikes: 0, // strikes in current level (0..2)
+    prevNumber: null, // last number drawn (1..49)
 
     // the amount risked at the beginning of the CURRENT level
     levelBet: 0,
 
     // last outcome for UI
-    lastGuess: null,       // "HIGHER"/"LOWER"/null
-    lastDraw: null,        // { kind:"NUMBER", value:n } | { kind:"ADVANCE_ONE" } | ...
-    lastWasCorrect: null,  // boolean|null
+    lastGuess: null, // "HIGHER"/"LOWER"/null
+    lastDraw: null, // { kind:"NUMBER", value:n } | { kind:"ADVANCE_ONE" } | ...
+    lastWasCorrect: null, // boolean|null
 
     // history
     log: [],
@@ -90,8 +91,8 @@ function buildOutcomeSpace(state) {
   }
 
   // special outcomes:
-  items.push({ kind: "ADVANCE_ONE", weight: 2 });      // normal weight
-  items.push({ kind: "ADVANCE_END", weight: 1 });      // half probability
+  items.push({ kind: "ADVANCE_ONE", weight: 2 }); // normal weight
+  items.push({ kind: "ADVANCE_END", weight: 1 }); // half probability
   if (state.strikes === 1) items.push({ kind: "STRIKE_REMOVED", weight: 1 }); // half probability
 
   return items;
@@ -141,7 +142,12 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
   const draw = weightedPick(state.rng, items);
 
   // resolve outcome
-  let nextState = { ...state, lastGuess: guess, lastDraw: draw, lastWasCorrect: null };
+  let nextState = {
+    ...state,
+    lastGuess: guess,
+    lastDraw: draw,
+    lastWasCorrect: null,
+  };
 
   if (draw.kind === "NUMBER") {
     const correct = isGuessCorrect(state.prevNumber, draw.value, guess);
@@ -153,7 +159,10 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
       strikes,
       prevNumber: draw.value,
       step: nextStep,
-      log: [...nextState.log, { t:"DRAW", step: nextStep, draw, guess, correct, strikes }],
+      log: [
+        ...nextState.log,
+        { t: "DRAW", step: nextStep, draw, guess, correct, strikes },
+      ],
     };
 
     if (strikes >= 2) {
@@ -161,7 +170,7 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
         ...nextState,
         phase: "GAME_OVER",
         message: `Two strikes. Game over.`,
-        log: [...nextState.log, { t:"GAME_OVER", reason:"TWO_STRIKES" }],
+        log: [...nextState.log, { t: "GAME_OVER", reason: "TWO_STRIKES" }],
       };
     }
 
@@ -174,7 +183,7 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
     nextState = {
       ...nextState,
       step: nextStep,
-      log: [...nextState.log, { t:"SPECIAL", step: nextStep, draw }],
+      log: [...nextState.log, { t: "SPECIAL", step: nextStep, draw }],
     };
     if (reachedEnd) {
       // at step 7 we don't care about preserving prevNumber anymore
@@ -187,7 +196,7 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
     nextState = {
       ...nextState,
       step: 7,
-      log: [...nextState.log, { t:"SPECIAL", step: 7, draw }],
+      log: [...nextState.log, { t: "SPECIAL", step: 7, draw }],
     };
     return endLevelIfNeeded(nextState);
   }
@@ -196,7 +205,7 @@ export function guessHigherLower(state, guess /* "HIGHER"|"LOWER" */) {
     nextState = {
       ...nextState,
       strikes: 0,
-      log: [...nextState.log, { t:"SPECIAL", step: state.step, draw }],
+      log: [...nextState.log, { t: "SPECIAL", step: state.step, draw }],
     };
     // does not advance step
     return nextState;
@@ -225,7 +234,10 @@ export function beginNextLevel(state, nextLevelBet) {
     lastGuess: null,
     lastDraw: { kind: "NUMBER", value: first },
     lastWasCorrect: null,
-    log: [...state.log, { t:"LEVEL_START", level, number: first, levelBet: nextLevelBet }],
+    log: [
+      ...state.log,
+      { t: "LEVEL_START", level, number: first, levelBet: nextLevelBet },
+    ],
   };
 }
 

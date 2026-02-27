@@ -48,46 +48,55 @@ export function mountHorseRacing(rootEl, store) {
   const resultsEl = rootEl.querySelector("#results");
   const raceDurEl = rootEl.querySelector("#raceDur");
 
-
   let race = null;
 
-function renderRace() {
-  const horseCount = Number(fieldSizeEl.value);
-  const durationMs = Math.max(4000, Math.min(30000, Number(raceDurEl.value || 8) * 1000));
+  function renderRace() {
+    const horseCount = Number(fieldSizeEl.value);
+    const durationMs = Math.max(
+      4000,
+      Math.min(30000, Number(raceDurEl.value || 8) * 1000),
+    );
 
-  race = makeRace({ horseCount, durationMs });
+    race = makeRace({ horseCount, durationMs });
 
-  horsePickEl.innerHTML = race.horses
-    .map(h => `<option value="${h.id}">${h.name} (${h.oddsStr})</option>`)
-    .join("");
+    horsePickEl.innerHTML = race.horses
+      .map((h) => `<option value="${h.id}">${h.name} (${h.oddsStr})</option>`)
+      .join("");
 
-  boardEl.innerHTML = `
+    boardEl.innerHTML = `
     <div class="hr-board-title">Odds Board (${race.horseCount} horses)</div>
     <div class="hr-board-grid">
       ${race.horses
         .slice()
-        .sort((a, b) => a.frac - b.frac)  // smaller "to-1" is favorite
-        .map(h => `
+        .sort((a, b) => a.frac - b.frac) // smaller "to-1" is favorite
+        .map(
+          (h) => `
           <div class="hr-card">
             <div class="hr-name">${h.name}</div>
             <div class="hr-odds">${h.oddsStr}</div>
           </div>
-        `)
+        `,
+        )
         .join("")}
     </div>
   `;
 
-  renderTrack(trackEl, race);
+    renderTrack(trackEl, race);
 
-  resultsEl.textContent = "";
-  msgEl.textContent = "Pick a winner, set your bet, and run the race.";
-}
-
+    resultsEl.textContent = "";
+    msgEl.textContent = "Pick a winner, set your bet, and run the race.";
+  }
 
   async function runRace() {
     const amount = Math.floor(Number(betAmtEl.value || 0));
-    if (amount < 1) { msgEl.textContent = "Bet must be at least 1."; return; }
-    if (store.balance < amount) { msgEl.textContent = "Not enough balance."; return; }
+    if (amount < 1) {
+      msgEl.textContent = "Bet must be at least 1.";
+      return;
+    }
+    if (store.balance < amount) {
+      msgEl.textContent = "Not enough balance.";
+      return;
+    }
 
     store.balance -= amount;
     store.render?.();
@@ -104,13 +113,13 @@ function renderRace() {
 
     await animateRace(trackEl, race, { durationMs: race.durationMs });
 
-
     const winner = race.finishOrder[0];
     highlightWinner(trackEl, race.winnerId);
     msgEl.textContent = `🏁 Winner: ${winner.name} (${winner.oddsStr})`;
 
-
-    const finish = race.finishOrder.map((h, i) => `${i + 1}. ${h.name}`).join("  •  ");
+    const finish = race.finishOrder
+      .map((h, i) => `${i + 1}. ${h.name}`)
+      .join("  •  ");
     const settled = settleWinBet({ horseId: pickedHorseId, amount }, race);
 
     if (settled.result === "win") {
@@ -132,7 +141,6 @@ function renderRace() {
 
     // New lineup after each race
     msgEl.textContent += " — Click New Race to set up the next race.";
-
   }
 
   raceDurEl.addEventListener("change", renderRace);
@@ -148,7 +156,9 @@ function renderTrack(trackEl, race) {
   // We render lanes in the same order as horses array (not finish order)
   trackEl.innerHTML = `
     <div class="hr-track-inner">
-      ${race.horses.map((h, idx) => `
+      ${race.horses
+        .map(
+          (h, idx) => `
         <div class="hr-lane" data-lane="${idx}">
           <div class="hr-lane-label">${idx + 1}. ${h.name}</div>
           <div class="hr-lane-run">
@@ -156,17 +166,18 @@ function renderTrack(trackEl, race) {
             <div class="hr-finish">🏁</div>
           </div>
         </div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
   `;
 }
 
 function highlightWinner(trackEl, winnerId) {
-  trackEl.querySelectorAll(".hr-horse").forEach(el => {
+  trackEl.querySelectorAll(".hr-horse").forEach((el) => {
     el.classList.toggle("hr-winner", el.dataset.id === winnerId);
   });
 }
-
 
 /**
  * Simple race animation (~durationMs) that ALWAYS ends in race.finishOrder.
@@ -175,31 +186,33 @@ function highlightWinner(trackEl, winnerId) {
  */
 function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
   const horses = Array.from(trackEl.querySelectorAll(".hr-horse"));
-  const byId = Object.fromEntries(horses.map(el => [el.dataset.id, el]));
+  const byId = Object.fromEntries(horses.map((el) => [el.dataset.id, el]));
 
   const rank = {};
   race.finishOrder.forEach((h, i) => (rank[h.id] = i));
 
   const laneRun = trackEl.querySelector(".hr-lane-run");
   const finishEl = trackEl.querySelector(".hr-finish");
-  const finishX = finishEl.getBoundingClientRect().left - laneRun.getBoundingClientRect().left;
+  const finishX =
+    finishEl.getBoundingClientRect().left -
+    laneRun.getBoundingClientRect().left;
   const maxX = Math.max(0, finishX - 28);
 
   const prog = {};
-  horses.forEach(el => (prog[el.dataset.id] = 0));
+  horses.forEach((el) => (prog[el.dataset.id] = 0));
 
   const n = race.horses.length;
   const biasOf = (id) => {
-    const r = rank[id] ?? (n - 1);
+    const r = rank[id] ?? n - 1;
     const t = (n - 1 - r) / (n - 1);
-    return 0.70 + t * 0.60; // units: "progress per second" bias
+    return 0.7 + t * 0.6; // units: "progress per second" bias
   };
 
   const stride = {};
-  race.horses.forEach(h => {
+  race.horses.forEach((h) => {
     const strength = 1 / (h.frac + 1); // rough; favorites slightly smoother
     stride[h.id] = {
-      base: 0.85 + strength * 0.90,       // pace scalar
+      base: 0.85 + strength * 0.9, // pace scalar
       wobble: 0.6 + Math.random() * 0.6,
       phase: Math.random() * Math.PI * 2,
     };
@@ -210,7 +223,7 @@ function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
     let last = start;
 
     function frame(now) {
-      const t = (now - start) / durationMs;   // 0..1
+      const t = (now - start) / durationMs; // 0..1
       const done = t >= 1;
 
       const dtMs = Math.max(0, now - last);
@@ -219,16 +232,17 @@ function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
       // Convert dt into seconds for rate-based integration
       const dt = dtMs / 1000;
 
-      race.horses.forEach(h => {
+      race.horses.forEach((h) => {
         const id = h.id;
         const s = stride[id];
 
         // cadence-based stride (visual flavor)
-        const cadence = Math.sin((t * 10.0) + s.phase) * 0.5 + 0.5; // 0..1
-        const noise = (Math.random() - 0.5) * 0.02 * s.wobble;      // small per-second noise
+        const cadence = Math.sin(t * 10.0 + s.phase) * 0.5 + 0.5; // 0..1
+        const noise = (Math.random() - 0.5) * 0.02 * s.wobble; // small per-second noise
 
         // Late kick
-        const kick = t > 0.70 ? (1 + (1 - ((rank[id] ?? (n - 1)) / (n - 1))) * 0.25) : 1;
+        const kick =
+          t > 0.7 ? 1 + (1 - (rank[id] ?? n - 1) / (n - 1)) * 0.25 : 1;
 
         // Base rate: tuned so average horse finishes around 1.0 by end
         const rate = (0.95 * s.base + 0.18 * biasOf(id)) * kick;
@@ -248,7 +262,7 @@ function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
         });
       }
 
-      horses.forEach(el => {
+      horses.forEach((el) => {
         const id = el.dataset.id;
         const x = clamp01(prog[id]) * maxX;
         el.style.transform = `translateX(${x}px)`;
@@ -271,14 +285,19 @@ function animateRace(trackEl, race, { durationMs = 8000 } = {}) {
   });
 }
 
-
 // Winner ~1.00, second ~0.985, ... last a bit behind
 function makeFinishTargets(finishOrder) {
   const n = finishOrder.length;
-  const gap = n <= 4 ? 0.012 : n <= 6 ? 0.010 : 0.009;
+  const gap = n <= 4 ? 0.012 : n <= 6 ? 0.01 : 0.009;
   return finishOrder.map((_, i) => clamp(1.0 - i * gap, 0.88, 1.0));
 }
 
-function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-function clamp01(x) { return Math.max(0, Math.min(1, x)); }
-function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(x, a, b) {
+  return Math.max(a, Math.min(b, x));
+}
+function clamp01(x) {
+  return Math.max(0, Math.min(1, x));
+}
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}

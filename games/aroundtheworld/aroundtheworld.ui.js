@@ -8,7 +8,9 @@ import {
   LEVEL_WIN_MULT,
 } from "./aroundtheworld.engine.js";
 
-function fmt(n){ return new Intl.NumberFormat().format(n); }
+function fmt(n) {
+  return new Intl.NumberFormat().format(n);
+}
 
 export function mountAroundTheWorld(rootEl, store) {
   let state = newATWState();
@@ -21,11 +23,20 @@ export function mountAroundTheWorld(rootEl, store) {
 
   function canShowDecision() {
     // Rule 16: after reaching end of levels 1-3 with 0 or 1 strikes, can cash out or continue
-    return state.phase === "LEVEL_END" && state.level >= 1 && state.level <= 3 && state.strikes <= 1;
+    return (
+      state.phase === "LEVEL_END" &&
+      state.level >= 1 &&
+      state.level <= 3 &&
+      state.strikes <= 1
+    );
   }
 
   function isOver() {
-    return state.phase === "GAME_OVER" || state.phase === "CASHED" || (state.phase === "LEVEL_END" && state.level === 4);
+    return (
+      state.phase === "GAME_OVER" ||
+      state.phase === "CASHED" ||
+      (state.phase === "LEVEL_END" && state.level === 4)
+    );
   }
 
   function describeDraw(d) {
@@ -39,7 +50,7 @@ export function mountAroundTheWorld(rootEl, store) {
 
   function stepNodes() {
     const nodes = [];
-    for (let i=1;i<=7;i++){
+    for (let i = 1; i <= 7; i++) {
       let cls = "atw-step";
       if (i < state.step) cls += " done";
       if (i === state.step) cls += " cur";
@@ -61,12 +72,18 @@ export function mountAroundTheWorld(rootEl, store) {
 
   function revealText() {
     if (state.phase === "BETTING") return "Start a level to begin.";
-    if (state.phase === "PLAYING" && state.step === 1) return "First number drawn. Guess Higher or Lower.";
-    if (state.lastDraw?.kind === "NUMBER" && state.lastWasCorrect === true) return `Correct — you advance.`;
-    if (state.lastDraw?.kind === "NUMBER" && state.lastWasCorrect === false) return `Wrong — you advance but take a strike.`;
-    if (state.lastDraw?.kind === "ADVANCE_ONE") return `Free advance one step (number stays the same).`;
-    if (state.lastDraw?.kind === "ADVANCE_END") return `Jumped to step 7 (end of level).`;
-    if (state.lastDraw?.kind === "STRIKE_REMOVED") return `Your strike was removed (no step advance).`;
+    if (state.phase === "PLAYING" && state.step === 1)
+      return "First number drawn. Guess Higher or Lower.";
+    if (state.lastDraw?.kind === "NUMBER" && state.lastWasCorrect === true)
+      return `Correct — you advance.`;
+    if (state.lastDraw?.kind === "NUMBER" && state.lastWasCorrect === false)
+      return `Wrong — you advance but take a strike.`;
+    if (state.lastDraw?.kind === "ADVANCE_ONE")
+      return `Free advance one step (number stays the same).`;
+    if (state.lastDraw?.kind === "ADVANCE_END")
+      return `Jumped to step 7 (end of level).`;
+    if (state.lastDraw?.kind === "STRIKE_REMOVED")
+      return `Your strike was removed (no step advance).`;
     if (state.phase === "LEVEL_END") return `Level complete.`;
     if (state.phase === "GAME_OVER") return `Two strikes — game over.`;
     if (state.phase === "CASHED") return `Cashed out.`;
@@ -78,13 +95,18 @@ export function mountAroundTheWorld(rootEl, store) {
     const lvl = state.level;
     const strikes = state.strikes;
 
-    if (lvl === 1 && strikes === 1) return `Push: +${fmt(state.levelBet)} (special Level 1 rule)`;
-    if (strikes === 0) return `Win: +${fmt(Math.floor(LEVEL_WIN_MULT[lvl] * state.levelBet))} (${LEVEL_WIN_MULT[lvl]}x for-one)`;
+    if (lvl === 1 && strikes === 1)
+      return `Push: +${fmt(state.levelBet)} (special Level 1 rule)`;
+    if (strikes === 0)
+      return `Win: +${fmt(Math.floor(LEVEL_WIN_MULT[lvl] * state.levelBet))} (${LEVEL_WIN_MULT[lvl]}x for-one)`;
     return `No win (keeps your balance as-is).`;
   }
 
   function renderLog(log) {
-    return log.slice(-30).map(x => JSON.stringify(x)).join("\n");
+    return log
+      .slice(-30)
+      .map((x) => JSON.stringify(x))
+      .join("\n");
   }
 
   async function paint() {
@@ -124,7 +146,7 @@ export function mountAroundTheWorld(rootEl, store) {
             </div>
             <div class="atw-reveal">
               <div><b>Last:</b> ${describeDraw(state.lastDraw)}</div>
-              <div><b>Guess:</b> ${state.lastGuess ?? "—"} ${state.lastWasCorrect===true ? "✅" : state.lastWasCorrect===false ? "❌" : ""}</div>
+              <div><b>Guess:</b> ${state.lastGuess ?? "—"} ${state.lastWasCorrect === true ? "✅" : state.lastWasCorrect === false ? "❌" : ""}</div>
               <div><b>Result:</b> ${revealText()}</div>
             </div>
           </div>
@@ -134,11 +156,11 @@ export function mountAroundTheWorld(rootEl, store) {
           <div class="atw-card">
             <div class="atw-actions">
               <label class="atw-badge">WAGER</label>
-              <input id="wager" type="number" min="1" value="${state.wager || 10}" ${!isBetting ? "disabled": ""} style="max-width:140px;">
-              <button id="btnStart" class="btnBig" ${!isBetting ? "disabled": ""}>Start</button>
+              <input id="wager" type="number" min="1" value="${state.wager || 10}" ${!isBetting ? "disabled" : ""} style="max-width:140px;">
+              <button id="btnStart" class="btnBig" ${!isBetting ? "disabled" : ""}>Start</button>
 
-              <button id="btnHi" class="btnBig" ${!isPlaying ? "disabled": ""}>Higher</button>
-              <button id="btnLo" class="btnBig" ${!isPlaying ? "disabled": ""}>Lower</button>
+              <button id="btnHi" class="btnBig" ${!isPlaying ? "disabled" : ""}>Higher</button>
+              <button id="btnLo" class="btnBig" ${!isPlaying ? "disabled" : ""}>Lower</button>
             </div>
 
             <div style="margin-top:10px;" class="atw-reveal">
@@ -146,8 +168,8 @@ export function mountAroundTheWorld(rootEl, store) {
             </div>
 
             <div style="margin-top:10px;" class="atw-actions">
-              <button id="btnCash" class="btnBig" ${!canShowDecision() ? "disabled": ""}>Cash Out</button>
-              <button id="btnCont" class="btnBig" ${!canShowDecision() ? "disabled": ""}>Continue (Bet Balance)</button>
+              <button id="btnCash" class="btnBig" ${!canShowDecision() ? "disabled" : ""}>Cash Out</button>
+              <button id="btnCont" class="btnBig" ${!canShowDecision() ? "disabled" : ""}>Continue (Bet Balance)</button>
             </div>
 
             <div style="margin-top:10px;" class="atw-sub">
@@ -171,7 +193,8 @@ export function mountAroundTheWorld(rootEl, store) {
       if (!store.currentPlayerId) return alert("Select a player first.");
 
       const w = Math.floor(Number(rootEl.querySelector("#wager")?.value || 0));
-      if (!Number.isFinite(w) || w <= 0) return alert("Enter a positive wager.");
+      if (!Number.isFinite(w) || w <= 0)
+        return alert("Enter a positive wager.");
 
       round = await store.startRound("ATW");
 

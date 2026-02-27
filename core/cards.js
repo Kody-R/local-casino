@@ -1,7 +1,21 @@
 // core/cards.js
-export const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
-export const SUITS = ["S","H","D","C"];
-export const SUIT_SYMBOL = { S:"♠", H:"♥", D:"♦", C:"♣" };
+export const RANKS = [
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "T",
+  "J",
+  "Q",
+  "K",
+  "A",
+];
+export const SUITS = ["S", "H", "D", "C"];
+export const SUIT_SYMBOL = { S: "♠", H: "♥", D: "♦", C: "♣" };
 
 export function makeDeck() {
   const deck = [];
@@ -35,13 +49,11 @@ export function makeDeckPaiGow() {
     joker: true,
     r: "JOKER",
     s: null,
-    paiGowJoker: true
+    paiGowJoker: true,
   });
 
   return deck;
 }
-
-
 
 export function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -52,7 +64,7 @@ export function shuffle(arr) {
 }
 
 function suitClass(s) {
-  return (s === "H" || s === "D") ? "red" : "black";
+  return s === "H" || s === "D" ? "red" : "black";
 }
 
 function rankDisplay(r) {
@@ -61,7 +73,7 @@ function rankDisplay(r) {
 
 // core/cards.js
 // core/cards.js (replace renderCards with this)
-export function renderCards(el, cards, faceDown=false, opts = {}) {
+export function renderCards(el, cards, faceDown = false, opts = {}) {
   const { highlightIdx = null, dimOthers = false } = opts;
 
   el.innerHTML = "";
@@ -80,7 +92,7 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
     // JOKER handling
     const isJoker = !faceDown && (c?.joker === true || c?.r === "JOKER");
     if (!faceDown && !isJoker) {
-      cls += (c.s === "H" || c.s === "D") ? " red" : " black";
+      cls += c.s === "H" || c.s === "D" ? " red" : " black";
     }
 
     card.className = cls;
@@ -91,9 +103,9 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
         <div class="backCenter">♠♥♦♣</div>
       `;
     } else if (isJoker) {
-  card.classList.add("joker");
+      card.classList.add("joker");
 
-  card.innerHTML = `
+      card.innerHTML = `
     <div class="corner tl jokerCorner">
       <div class="rank">J</div>
       <div class="suit">★</div>
@@ -108,8 +120,7 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
       <div class="suit">★</div>
     </div>
   `;
-}
- else {
+    } else {
       const r = c.r === "T" ? "10" : c.r;
       const suit = SUIT_SYMBOL[c.s];
       card.innerHTML = `
@@ -130,8 +141,6 @@ export function renderCards(el, cards, faceDown=false, opts = {}) {
     el.appendChild(card);
   }
 }
-
-
 
 export function renderCardBack(el, count = 1) {
   el.innerHTML = "";

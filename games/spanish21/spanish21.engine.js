@@ -2,11 +2,34 @@
 
 const SUITS = ["S", "H", "D", "C"];
 // Spanish 21 removes all TEN ranks ("T") from the deck.
-const SPANISH_RANKS = ["2","3","4","5","6","7","8","9","J","Q","K","A"];
+const SPANISH_RANKS = [
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "J",
+  "Q",
+  "K",
+  "A",
+];
 
 const VALUE = {
-  "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,
-  "J":10,"Q":10,"K":10,"A":11
+  2: 2,
+  3: 3,
+  4: 4,
+  5: 5,
+  6: 6,
+  7: 7,
+  8: 8,
+  9: 9,
+  J: 10,
+  Q: 10,
+  K: 10,
+  A: 11,
 };
 
 export function makeSpanishDeck({ decks = 6 } = {}) {
@@ -37,13 +60,17 @@ export function handValue(hand) {
     aces--;
   }
   // soft if there exists an Ace still counted as 11
-  const isSoft = hand.some(c => c.r === "A") && total <= 21 && (hand.reduce((a,c)=>a+(VALUE[c.r]??0),0) !== total);
+  const isSoft =
+    hand.some((c) => c.r === "A") &&
+    total <= 21 &&
+    hand.reduce((a, c) => a + (VALUE[c.r] ?? 0), 0) !== total;
   return { total, isSoft };
 }
 
 export function isBlackjack(hand) {
   if (hand.length !== 2) return false;
-  const r1 = hand[0].r, r2 = hand[1].r;
+  const r1 = hand[0].r,
+    r2 = hand[1].r;
   return (r1 === "A" && isTenValue(r2)) || (r2 === "A" && isTenValue(r1));
 }
 function isTenValue(r) {
@@ -59,7 +86,7 @@ export function newSpanish21State({
   dealerHitsSoft17 = true,
   maxHands = 4,
   doubleAfterSplit = true,
-  rng = Math.random
+  rng = Math.random,
 } = {}) {
   const shoe = shuffle(makeSpanishDeck({ decks }), rng);
   return {
@@ -70,14 +97,17 @@ export function newSpanish21State({
     hands: [],
     bets: [],
     active: 0,
-    results: [] // per-hand settlement objects
+    results: [], // per-hand settlement objects
   };
 }
 
 function draw(state) {
   if (state.shoe.length < 20) {
     // simple reshuffle when low
-    state.shoe = shuffle(makeSpanishDeck({ decks: state.cfg.decks }), Math.random);
+    state.shoe = shuffle(
+      makeSpanishDeck({ decks: state.cfg.decks }),
+      Math.random,
+    );
   }
   return state.shoe.shift();
 }
@@ -115,11 +145,13 @@ export function availableActions(state) {
 
   // double on any 2 cards; also allow after split if configured
   if (hand.length === 2) {
-    if (state.cfg.doubleAfterSplit || state.hands.length === 1) actions.push("DOUBLE");
+    if (state.cfg.doubleAfterSplit || state.hands.length === 1)
+      actions.push("DOUBLE");
   }
 
   // split
-  if (canSplit(hand) && state.hands.length < state.cfg.maxHands) actions.push("SPLIT");
+  if (canSplit(hand) && state.hands.length < state.cfg.maxHands)
+    actions.push("SPLIT");
 
   return actions;
 }
@@ -151,7 +183,8 @@ export function step(state, action) {
   }
 
   if (action === "SPLIT") {
-    const c1 = hand[0], c2 = hand[1];
+    const c1 = hand[0],
+      c2 = hand[1];
     // create two hands
     const h1 = [c1, draw(state)];
     const h2 = [c2, draw(state)];
@@ -212,7 +245,12 @@ function settleAll(state) {
     // Spanish 21 special: player blackjack always wins (even vs dealer blackjack)
     if (playerBJ) {
       const win = Math.floor(bet * 1.5); // 3:2 winnings (not including returning stake)
-      return { idx, outcome: "WIN", reason: dealerBJ ? "BJ_BEATS_BJ" : "BLACKJACK", net: win };
+      return {
+        idx,
+        outcome: "WIN",
+        reason: dealerBJ ? "BJ_BEATS_BJ" : "BLACKJACK",
+        net: win,
+      };
     }
 
     // Dealer blackjack beats non-blackjack
@@ -226,8 +264,10 @@ function settleAll(state) {
     }
 
     // Compare totals
-    if (pv.total > dealerV.total) return { idx, outcome: "WIN", reason: "HIGHER_TOTAL", net: bet };
-    if (pv.total < dealerV.total) return { idx, outcome: "LOSE", reason: "LOWER_TOTAL", net: -bet };
+    if (pv.total > dealerV.total)
+      return { idx, outcome: "WIN", reason: "HIGHER_TOTAL", net: bet };
+    if (pv.total < dealerV.total)
+      return { idx, outcome: "LOSE", reason: "LOWER_TOTAL", net: -bet };
     return { idx, outcome: "PUSH", reason: "TIE", net: 0 };
   });
 }

@@ -2,20 +2,20 @@
 import { eval5, compareEval5 } from "../../core/eval5.js";
 
 const SUITS = ["S", "H", "D", "C"];
-const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
+const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
 
 // Caribbean Stud Call payout table (multiplier on CALL bet only)
 export const CALL_PAY_TABLE = {
   RF: 100, // Royal Flush
-  SF: 50,  // Straight Flush
-  FK: 20,  // Four of a Kind
-  FH: 7,   // Full House
-  FL: 5,   // Flush
-  ST: 4,   // Straight
-  TK: 3,   // Three of a Kind
+  SF: 50, // Straight Flush
+  FK: 20, // Four of a Kind
+  FH: 7, // Full House
+  FL: 5, // Flush
+  ST: 4, // Straight
+  TK: 3, // Three of a Kind
   "2P": 2, // Two Pair
-  PR: 1,   // One Pair
-  HI: 1,   // High Card (only if player wins)
+  PR: 1, // One Pair
+  HI: 1, // High Card (only if player wins)
 };
 
 // Dealer qualifies with Ace-King high or better
@@ -97,8 +97,8 @@ export function settleCaribbeanStud({ round, action, ante }) {
       dealerQualified: false,
       playerEval,
       dealerEval,
-      anteWin: +ante,   // win 1:1 on ante
-      callWin: 0,       // call pushes (returned)
+      anteWin: +ante, // win 1:1 on ante
+      callWin: 0, // call pushes (returned)
       net: +ante,
     };
   }
