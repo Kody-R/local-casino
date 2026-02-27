@@ -3132,7 +3132,7 @@ export const THEMES = {
 
   "college-baseball-nights": {
     name: "College Baseball Nights",
-    accent: "#001f5b",
+    accent: "#f54242",
     showLabels: false,
     grid: { rows: 5, cols: 5 },
 
