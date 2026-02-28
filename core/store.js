@@ -36,13 +36,15 @@ export async function initStore() {
     async ledgerRows(playerId) {
       return queryIndex(db, "ledger", "by_player", playerId);
     },
+
     async balance(playerId) {
       const rows = await store.ledgerRows(playerId);
       return rows.reduce((s, r) => s + r.amount, 0);
     },
 
     async getChips(playerId) {
-      return store.balance(playerId);
+      const rows = await store.ledgerRows(playerId);
+      return rows.reduce((s, r) => s + r.amount, 0);
     },
 
     async addLedger(reason, amount, roundId = null) {
@@ -73,7 +75,7 @@ export async function initStore() {
 
     async placeBet(roundId, betType, amount) {
       if (!store.currentPlayerId) throw new Error("No player selected.");
-      const bal = await store.balance(store.currentPlayerId);
+      const bal = await store.getChips(store.currentPlayerId);
       if (amount < 0) throw new Error("Bet must be >= 0.");
       if (amount === 0) {
         // record bet with 0 amount but no ledger change
