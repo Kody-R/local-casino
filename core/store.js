@@ -135,11 +135,6 @@ export async function initStore() {
   return store;
 }
 
-Object.defineProperty(store, "balance", {
-  writable: false,
-  configurable: false,
-});
-
 function fmt(n) {
   return new Intl.NumberFormat().format(n);
 }
@@ -213,7 +208,7 @@ export async function renderPlayerPanel(store) {
     const players = await store.listPlayers();
     const p = players.find((x) => x.id === store.currentPlayerId);
     el.selectedName.textContent = p?.name ?? "—";
-    const bal = await store.balance(store.currentPlayerId);
+    const bal = await store.getBalance(store.currentPlayerId);
     el.chipBalance.textContent = fmt(bal);
     el.statNet.textContent = fmt(bal);
 
