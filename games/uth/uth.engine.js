@@ -48,7 +48,6 @@ export async function dealUTHRound(store, { ante, trips, payouts }) {
 }
 
 export async function betPreflop(store, roundId, live, mult /*3 or 4*/) {
-  // after hole cards: check or bet 3x/4x :contentReference[oaicite:8]{index=8}
   if (live.street !== "PREFLOP") throw new Error("Not preflop.");
   if (![3, 4].includes(mult)) throw new Error("Preflop bet must be 3x or 4x.");
 
@@ -71,7 +70,6 @@ export function checkPreflop(live) {
 }
 
 export async function betFlop(store, roundId, live) {
-  // after flop: check or bet 2x :contentReference[oaicite:9]{index=9}
   if (live.street !== "FLOP") throw new Error("Not flop street.");
   const amt = live.ante * 2;
   await store.placeBet(roundId, "PLAY", amt);
@@ -89,7 +87,6 @@ export function checkFlop(live) {
 }
 
 export async function betRiver(store, roundId, live) {
-  // after river: fold or bet 1x :contentReference[oaicite:10]{index=10}
   if (live.street !== "RIVER") throw new Error("Not river street.");
   const amt = live.ante;
   await store.placeBet(roundId, "PLAY", amt);
@@ -149,15 +146,12 @@ export async function resolveUTH(store, roundId, live) {
   let detail = `Player: ${pBest.code} | Dealer: ${dBest.code}. `;
 
   if (!dealerQual) {
-    // Dealer doesn't qualify: return Ante; all other bets still have action :contentReference[oaicite:11]{index=11}
+
     await store.settle(roundId, "ANTE", "PUSH", 0, live.ante);
 
-    // PLAY resolves vs comparison (even money when player beats dealer) :contentReference[oaicite:12]{index=12}
     if (cmp > 0) await settleEven("PLAY", live.playWager, "WIN");
     else if (cmp < 0) await settleEven("PLAY", live.playWager, "LOSE");
     else await settleEven("PLAY", live.playWager, "PUSH");
-
-    // BLIND: pays only if player wins + Straight+; otherwise pushes :contentReference[oaicite:13]{index=13}
     if (cmp > 0 && playerHasStraightPlus(pBest)) {
       const mult = blindMult(live.payouts, pBest.code);
       await store.settle(
@@ -174,12 +168,11 @@ export async function resolveUTH(store, roundId, live) {
     title = "Dealer did NOT qualify";
     detail += "Ante returned; Play/Blind resolved normally.";
   } else {
-    // Dealer qualifies: normal win/lose/push on Ante+Play :contentReference[oaicite:14]{index=14}
     if (cmp > 0) {
       await settleEven("ANTE", live.ante, "WIN");
       await settleEven("PLAY", live.playWager, "WIN");
 
-      // Blind rules (only pays if Straight+; otherwise push) :contentReference[oaicite:15]{index=15}
+
       if (playerHasStraightPlus(pBest)) {
         const mult = blindMult(live.payouts, pBest.code);
         await store.settle(

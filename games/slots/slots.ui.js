@@ -143,6 +143,7 @@ export function mountSlots(mountEl, store) {
 
   let freeSpinsLeft = 0;
   let freeSpinTotal = 0;
+  let freeSpinSessionWin = 0;
   let lastBetSnapshot = null;
   let busy = false;
   let frozenState = null; // Arctic Fortune persistent freeze
@@ -356,6 +357,8 @@ export function mountSlots(mountEl, store) {
       const useBet =
         freeSpinsLeft > 0 ? lastBetSnapshot : { linesEnabled, betPerLine };
 
+      const isFreeSpinNow = freeSpinsLeft > 0;
+
       // 🔥 Effective bet (important for free spins)
       const effectiveTotalBet = useBet.betPerLine * useBet.linesEnabled;
 
@@ -458,8 +461,12 @@ export function mountSlots(mountEl, store) {
         freeSpinsLeft > 0
           ? `Free Spin (${freeSpinsLeft}/${freeSpinTotal})`
           : "Paid Spin";
-      el.result.textContent = `${modeLabel} — Win: ${res.totalWin}`;
-      el.detail.textContent = `${res.lineWins.length} line win(s), Scatters: ${res.scatters} (${res.scatterWin}). Bonus: ${bonusText}`;
+
+      if (isFreeSpinNow) {
+        el.result.textContent = `${modeLabel} — Win: ${res.totalWin} — FS Total: ${freeSpinSessionWin}`;
+      } else {
+        el.result.textContent = `${modeLabel} — Win: ${res.totalWin}`;
+      }
 
       // handle triggers
       // handle triggers (support retrigger during free spins)
@@ -469,6 +476,7 @@ export function mountSlots(mountEl, store) {
           if (freeSpinsLeft === 0) {
             freeSpinsLeft = add;
             freeSpinTotal = add;
+            freeSpinSessionWin = 0; // ✅ NEW: start-of-feature reset
           } else {
             freeSpinsLeft += add;
             freeSpinTotal += add;
@@ -505,13 +513,24 @@ export function mountSlots(mountEl, store) {
           if (!overlayOpen) setTimeout(() => el.spin.click(), 650);
         } else {
           // ✅ reset session state so the next (non-consecutive) feature starts clean
+          const fsTotalWon = freeSpinSessionWin; // snapshot for display
+
           freeSpinTotal = 0;
           lastBetSnapshot = null;
+          freeSpinSessionWin = 0; // ✅ NEW
 
-          showOverlay(el, "Free Spins Complete", "Back to paid spins.", [
-            { label: "OK", cls: "ok", onClick: () => hideOverlay(el) },
-          ]);
+          showOverlay(
+            el,
+            "Free Spins Complete",
+            `Total Free Spins Win: <b>${fsTotalWon}</b><br>Back to paid spins.`,
+            [{ label: "OK", cls: "ok", onClick: () => hideOverlay(el) }],
+          );
         }
+      }
+
+      // ... after res is computed and you settle UI text:
+      if (isFreeSpinNow) {
+        freeSpinSessionWin += res.totalWin;
       }
 
       renderCoinMeter(el, coinMeter, meterCfg.threshold);

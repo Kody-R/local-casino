@@ -21,7 +21,7 @@ export function mountUTH(mountEl, store) {
     <h2>Ultimate Texas Hold’em</h2>
     <p class="help">
       Ante + Blind equal. Optional Trips.
-      Preflop: check or bet 3x/4x. Flop: check or bet 2x. River: fold or bet 1x. :contentReference[oaicite:16]{index=16}
+      Preflop: check or bet 3x/4x. Flop: check or bet 2x. River: fold or bet 1x.
     </p>
 
     <div class="row">
