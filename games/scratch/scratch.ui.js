@@ -165,7 +165,6 @@ export function mountScratch(container, store) {
   }
 
   function revealAll() {
-    ctx.globalCompositeOperation = "destination-out";
     const rect = surfaceEl.getBoundingClientRect();
     ctx.globalCompositeOperation = "destination-out";
     ctx.fillRect(0, 0, rect.width, rect.height);
@@ -306,7 +305,12 @@ export function mountScratch(container, store) {
     ctx.arc(x, y, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    const pct = getScratchPercent(ctx, canvas.width, canvas.height);
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const pct = getScratchPercent(
+      ctx,
+      Math.floor(rect.width * dpr),
+      Math.floor(rect.height * dpr),
+    );
     if (pct >= 0.6) {
       revealAll();
       settleOnce();
@@ -353,6 +357,7 @@ export function mountScratch(container, store) {
 
   // Ticket selection preview (theme/subtitle)
   function previewSelected() {
+    const ticketDef = tickets.find((t) => t.id === sel.value);
     if (!ticketDef) return;
     setTheme(ticketDef);
   }
