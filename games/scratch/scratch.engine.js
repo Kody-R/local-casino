@@ -1,3 +1,5 @@
+import { THEMES } from "../slots/slots.themes.js";
+
 function pickWeighted(table) {
   const total = table.reduce((s, t) => s + t.weight, 0);
   let r = Math.random() * total;
@@ -20,8 +22,88 @@ function shuffle(a) {
   return a;
 }
 
+function iconPoolForTicket(ticketDef) {
+  // Allow explicit override
+  if (ticketDef.icons?.length) return ticketDef.icons;
+
+  const t = THEMES[ticketDef.slotThemeKey];
+  if (!t?.icons)
+    throw new Error(`Unknown slotThemeKey: ${ticketDef.slotThemeKey}`);
+
+  // Pull theme icon values, filter out "A,K,Q,J,10" style entries
+  const vals = Object.values(t.icons).filter(Boolean);
+  const pool = [...new Set(vals)].filter((v) => !/^[A-Z0-9]+$/.test(v)); // removes A,K,Q,J,10
+  if (pool.length < 4)
+    throw new Error(`Theme ${ticketDef.slotThemeKey} icon pool too small`);
+  return pool;
+}
+
+function findTripleSets(boardIcons) {
+  const byIcon = new Map();
+  boardIcons.forEach((ic, i) => {
+    if (!byIcon.has(ic)) byIcon.set(ic, []);
+    byIcon.get(ic).push(i);
+  });
+
+  const sets = [];
+  for (const [ic, idxs] of byIcon.entries()) {
+    if (idxs.length >= 3) {
+      // if 6 of same icon appear, this makes 2 sets (0-2, 3-5)
+      for (let k = 0; k + 2 < idxs.length; k += 3) {
+        sets.push({ icon: ic, idxs: idxs.slice(k, k + 3) });
+      }
+    }
+  }
+  return sets;
+}
+
 function fmtAmount(n) {
   return new Intl.NumberFormat().format(n);
+}
+
+function buildMatch3Board(ticketDef, wantSets) {
+  const icons = ticketDef.icons;
+  const board = new Array(9).fill(null);
+  const counts = new Map();
+
+  // pick the winning icon and assign 3*wantSets positions
+  const winIcon = icons[randInt(icons.length)];
+  const allIdx = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  const used = allIdx.slice(0, 3 * wantSets);
+
+  used.forEach((i) => {
+    board[i] = winIcon;
+  });
+  counts.set(winIcon, 3 * wantSets);
+
+  // fill remaining cells
+  for (let i = 0; i < 9; i++) {
+    if (board[i]) continue;
+
+    let tries = 0;
+    while (tries++ < 300) {
+      const ic = icons[randInt(icons.length)];
+      const c = counts.get(ic) ?? 0;
+
+      if (ticketDef.match3Mode === "single") {
+        // In single mode, do NOT allow any other icon to reach 3
+        if (ic !== winIcon && c >= 2) continue;
+        // also keep winIcon from reaching >3
+        if (ic === winIcon) continue;
+      } else {
+        // perSet: keep things reasonable (optional), but don't block triples
+        // you can still prevent 9-of-a-kind if you want
+      }
+
+      board[i] = ic;
+      counts.set(ic, c + 1);
+      break;
+    }
+
+    if (!board[i]) board[i] = icons[0];
+  }
+
+  return { boardIcons: board, winIcon };
 }
 
 // ---------------------------
@@ -29,86 +111,100 @@ function fmtAmount(n) {
 // ---------------------------
 function generateMatch3(ticketDef) {
   const tier = pickWeighted(ticketDef.tiers);
-  const winAmount = tier.mult * ticketDef.price;
+  const baseWinAmount = tier.mult * ticketDef.price;
 
-  let amounts = new Array(9).fill(0);
+  const icons = ticketDef.icons;
+  const mode = ticketDef.match3Mode || "single";
 
-  if (winAmount > 0) {
-    const idxs = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, 3);
-    for (const i of idxs) amounts[i] = winAmount;
+  // Determine desired number of winning sets
+  let wantSets = 0;
+  if (baseWinAmount > 0) {
+    if (mode === "perSet") {
+      const p2 = 0.15; // 15% chance of double set
+      wantSets = Math.random() < p2 ? 2 : 1;
+    } else {
+      wantSets = 1;
+    }
+  }
 
-    const usedCounts = new Map([[winAmount, 3]]);
+  const board = new Array(9).fill(null);
+  const counts = new Map();
+  let winIcon = null;
+
+  if (wantSets > 0) {
+    winIcon = icons[Math.floor(Math.random() * icons.length)];
+
+    // Place 3 * wantSets winning icons
+    const idxs = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, 3 * wantSets);
+    idxs.forEach((i) => {
+      board[i] = winIcon;
+    });
+
+    counts.set(winIcon, 3 * wantSets);
+
+    // Fill remaining cells
     for (let i = 0; i < 9; i++) {
-      if (amounts[i] !== 0) continue;
+      if (board[i]) continue;
 
       let tries = 0;
-      while (tries++ < 200) {
-        const mult = ticketDef.decoys[randInt(ticketDef.decoys.length)];
-        const amt = mult * ticketDef.price;
-        const cur = usedCounts.get(amt) ?? 0;
-        if (amt !== winAmount && cur >= 2) continue;
-        amounts[i] = amt;
-        usedCounts.set(amt, cur + 1);
+      while (tries++ < 300) {
+        const ic = icons[Math.floor(Math.random() * icons.length)];
+        const c = counts.get(ic) ?? 0;
+
+        if (mode === "single") {
+          if (ic === winIcon) continue; // no extra win icons
+          if (c >= 2) continue; // no other triple
+        } else {
+          if (ic === winIcon && c >= 3 * wantSets) continue;
+        }
+
+        board[i] = ic;
+        counts.set(ic, c + 1);
         break;
       }
-      if (amounts[i] === 0) amounts[i] = ticketDef.price;
+
+      if (!board[i]) board[i] = icons[0];
     }
   } else {
-    const usedCounts = new Map();
+    // Losing board — no triples allowed
     for (let i = 0; i < 9; i++) {
       let tries = 0;
       while (tries++ < 300) {
-        const mult = ticketDef.decoys[randInt(ticketDef.decoys.length)];
-        const amt = mult * ticketDef.price;
-        const cur = usedCounts.get(amt) ?? 0;
-        if (cur >= 2) continue;
-        amounts[i] = amt;
-        usedCounts.set(amt, cur + 1);
-        break;
-      }
-      if (amounts[i] === 0) amounts[i] = ticketDef.price;
-    }
-  }
-
-  // Build icon board
-  const icons = ticketDef.icons;
-  let boardIcons = new Array(9);
-
-  // Pick winning icon if win
-  if (winAmount > 0) {
-    const winIcon = icons[randInt(icons.length)];
-    const idxs = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, 3);
-    for (const i of idxs) boardIcons[i] = winIcon;
-
-    for (let i = 0; i < 9; i++) {
-      if (!boardIcons[i]) {
-        boardIcons[i] = icons[randInt(icons.length)];
-      }
-    }
-  } else {
-    // no triple allowed
-    let counts = {};
-    for (let i = 0; i < 9; i++) {
-      let tries = 0;
-      while (tries++ < 200) {
-        const icon = icons[randInt(icons.length)];
-        const c = counts[icon] ?? 0;
+        const ic = icons[Math.floor(Math.random() * icons.length)];
+        const c = counts.get(ic) ?? 0;
         if (c >= 2) continue;
-        boardIcons[i] = icon;
-        counts[icon] = c + 1;
+        board[i] = ic;
+        counts.set(ic, c + 1);
         break;
       }
     }
   }
+
+  // Determine actual triple sets
+  const sets = findTripleSets(board);
+  const payingSets = winIcon ? sets.filter((s) => s.icon === winIcon) : [];
+
+  const setCount = payingSets.length;
+
+  const winAmount =
+    mode === "perSet"
+      ? baseWinAmount * setCount
+      : setCount > 0
+        ? baseWinAmount
+        : 0;
 
   return {
     kind: "match3",
     tierLabel: tier.label,
+    baseWinAmount,
     winAmount,
-    boardIcons,
+    boardIcons: board,
+    winIcon,
+    winSets: payingSets.map((s) => s.idxs),
+    setCount,
+    match3Mode: mode,
   };
 }
-
 // ---------------------------
 // Lucky Numbers generator
 // ---------------------------
