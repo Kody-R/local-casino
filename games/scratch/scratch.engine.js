@@ -61,6 +61,90 @@ export function buildSymbolMultFromTheme(
   return out;
 }
 
+function volatilityProfileForPrice(price) {
+  const p = Number(price || 25);
+
+  // These are tuned “profiles” not magic constants:
+  // low price: frequent small wins
+  // high price: fewer wins, more top-end
+  if (p >= 100) {
+    return {
+      loseMult: 1.22, // higher => fewer wins
+      lowWinMult: 0.82, // 2x weight down
+      midWinMult: 1.05, // 5x weight slightly up
+      highWinMult: 1.18, // 20x weight up
+      topWinMult: 1.35, // 100x weight up
+      jackpotChance: 0.004,
+      doubleSetChance: 0.1,
+    };
+  }
+  if (p >= 50) {
+    return {
+      loseMult: 1.12,
+      lowWinMult: 0.9,
+      midWinMult: 1.02,
+      highWinMult: 1.1,
+      topWinMult: 1.18,
+      jackpotChance: 0.002,
+      doubleSetChance: 0.12,
+    };
+  }
+  if (p >= 25) {
+    return {
+      loseMult: 1.0,
+      lowWinMult: 1.0,
+      midWinMult: 1.0,
+      highWinMult: 1.0,
+      topWinMult: 1.0,
+      jackpotChance: 0.001,
+      doubleSetChance: 0.15,
+    };
+  }
+  // $10 / cheap tickets: low volatility
+  return {
+    loseMult: 0.92,
+    lowWinMult: 1.1,
+    midWinMult: 1.02,
+    highWinMult: 0.92,
+    topWinMult: 0.8,
+    jackpotChance: 0.0005,
+    doubleSetChance: 0.18,
+  };
+}
+
+function buildMatch3Tiers(ticketDef) {
+  const base = [
+    { label: "LOSE", mult: 0, weight: 7200 },
+    { label: "2x", mult: 2, weight: 2000 },
+    { label: "5x", mult: 5, weight: 600 },
+    { label: "20x", mult: 20, weight: 170 },
+    { label: "100x", mult: 100, weight: 30 },
+  ];
+
+  const price = Number(ticketDef.price || 25);
+  const mode = ticketDef.match3Mode || "single";
+  const prof = volatilityProfileForPrice(price);
+
+  // perSet amplifies payout; tighten hit-rate a bit
+  const perSetTighten = mode === "perSet" ? 1.12 : 1.0;
+
+  const out = base.map((t) => ({ ...t }));
+
+  out[0].weight = Math.round(out[0].weight * prof.loseMult * perSetTighten);
+  out[1].weight = Math.round(
+    (out[1].weight * prof.lowWinMult) / (mode === "perSet" ? 1.06 : 1.0),
+  );
+  out[2].weight = Math.round(out[2].weight * prof.midWinMult);
+  out[3].weight = Math.round(out[3].weight * prof.highWinMult);
+  out[4].weight = Math.round(out[4].weight * prof.topWinMult);
+
+  // Safety
+  for (const t of out) t.weight = Math.max(1, t.weight);
+  if (out[0].weight < 2000) out[0].weight = 2000;
+
+  return out;
+}
+
 function pickWeighted(table) {
   const total = table.reduce((s, t) => s + t.weight, 0);
   let r = Math.random() * total;
@@ -158,60 +242,17 @@ function fmtAmount(n) {
   return new Intl.NumberFormat().format(n);
 }
 
-function buildMatch3Board(ticketDef, wantSets) {
-  const icons = ticketDef.icons;
-  const board = new Array(9).fill(null);
-  const counts = new Map();
-
-  // pick the winning icon and assign 3*wantSets positions
-  const winIcon = icons[randInt(icons.length)];
-  const allIdx = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-  const used = allIdx.slice(0, 3 * wantSets);
-
-  used.forEach((i) => {
-    board[i] = winIcon;
-  });
-  counts.set(winIcon, 3 * wantSets);
-
-  // fill remaining cells
-  for (let i = 0; i < 9; i++) {
-    if (board[i]) continue;
-
-    let tries = 0;
-    while (tries++ < 300) {
-      const ic = icons[randInt(icons.length)];
-      const c = counts.get(ic) ?? 0;
-
-      if (ticketDef.match3Mode === "single") {
-        // In single mode, do NOT allow any other icon to reach 3
-        if (ic !== winIcon && c >= 2) continue;
-        // also keep winIcon from reaching >3
-        if (ic === winIcon) continue;
-      } else {
-        // perSet: keep things reasonable (optional), but don't block triples
-        // you can still prevent 9-of-a-kind if you want
-      }
-
-      board[i] = ic;
-      counts.set(ic, c + 1);
-      break;
-    }
-
-    if (!board[i]) board[i] = icons[0];
-  }
-
-  return { boardIcons: board, winIcon };
-}
-
 // ---------------------------
 // Match-3 amounts generator
 // ---------------------------
 function generateMatch3(ticketDef) {
-  const tier = pickWeighted(ticketDef.tiers);
+  const tiers = ticketDef.tiers?.length
+    ? ticketDef.tiers
+    : buildMatch3Tiers(ticketDef);
+  const tier = pickWeighted(tiers);
   const baseTierPayout = tier.mult * ticketDef.price;
 
   const icons = iconPoolForTicket(ticketDef); // uses slots.themes.js unless icons override
-  const mode = ticketDef.match3Mode || "single";
 
   const wildIcon = ticketDef.wildIcon || "🃏";
   const jackpotIcon = ticketDef.jackpotIcon || "🏆";
@@ -219,12 +260,21 @@ function generateMatch3(ticketDef) {
 
   const wildChance =
     typeof ticketDef.wildChance === "number" ? ticketDef.wildChance : 0.25;
-  const jackpotChance =
-    typeof ticketDef.jackpotChance === "number" ? ticketDef.jackpotChance : 0.0;
+  const price = Number(ticketDef.price || 25);
+  const mode = ticketDef.match3Mode || "single";
+  const prof = volatilityProfileForPrice(price);
+
   const doubleSetChance =
     typeof ticketDef.doubleSetChance === "number"
       ? ticketDef.doubleSetChance
-      : 0.15;
+      : ticketDef.match3Mode === "perSet"
+        ? prof.doubleSetChance
+        : 0;
+
+  const jackpotChance =
+    typeof ticketDef.jackpotChance === "number"
+      ? ticketDef.jackpotChance
+      : prof.jackpotChance;
 
   // Decide whether this ticket is a "win" at all (tier.mult > 0 means win)
   const isWinTier = baseTierPayout > 0;

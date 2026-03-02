@@ -166,7 +166,9 @@ export function mountScratch(container, store) {
 
   function revealAll() {
     ctx.globalCompositeOperation = "destination-out";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const rect = surfaceEl.getBoundingClientRect();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillRect(0, 0, rect.width, rect.height);
 
     canvas.style.transition = "opacity 180ms ease";
     canvas.style.opacity = "0";
@@ -351,7 +353,7 @@ export function mountScratch(container, store) {
 
   // Ticket selection preview (theme/subtitle)
   function previewSelected() {
-    const ticketDef = tickets.find((t) => t.id === sel.value);
+    if (!ticketDef) return;
     setTheme(ticketDef);
   }
   sel.addEventListener("change", previewSelected);

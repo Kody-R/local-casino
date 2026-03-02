@@ -83,22 +83,6 @@ function buildTicketForTheme(themeKey) {
         ? "Each set of 3 matching symbols pays."
         : "Match 3 symbols to win.",
     price,
-
-    // IMPORTANT:
-    // Do NOT hardcode icons here.
-    // Your engine’s iconPoolForTicket() should pull from THEMES[slotThemeKey].icons
-    // (or you can add a small iconPool builder in engine if needed)
-
-    // Base tiers (can be tuned per price later)
-    tiers: [
-      { label: "LOSE", mult: 0, weight: 7200 },
-      { label: "2x", mult: 2, weight: 2000 },
-      { label: "5x", mult: 5, weight: 600 },
-      { label: "20x", mult: 20, weight: 170 },
-      { label: "100x", mult: 100, weight: 30 },
-    ],
-
-    // Optional: perSet “double-set” chance
     doubleSetChance: 0.15,
   };
 }
