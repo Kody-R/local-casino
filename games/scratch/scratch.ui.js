@@ -357,10 +357,11 @@ export function mountScratch(container, store) {
 
   // Ticket selection preview (theme/subtitle)
   function previewSelected() {
-    const ticketDef = tickets.find((t) => t.id === sel.value);
-    if (!ticketDef) return;
-    setTheme(ticketDef);
+    const td = tickets.find((t) => t.id === sel.value);
+    if (!td) return;
+    setTheme(td);
   }
+
   sel.addEventListener("change", previewSelected);
   previewSelected();
 
