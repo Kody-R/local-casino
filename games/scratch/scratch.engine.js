@@ -88,19 +88,39 @@ function chance(p) {
 }
 
 function iconPoolForTicket(ticketDef) {
-  // Allow explicit override
+  // Explicit override still allowed
   if (ticketDef.icons?.length) return ticketDef.icons;
 
-  const t = THEMES[ticketDef.slotThemeKey];
-  if (!t?.icons)
+  const theme = THEMES[ticketDef.slotThemeKey];
+  if (!theme)
     throw new Error(`Unknown slotThemeKey: ${ticketDef.slotThemeKey}`);
 
-  // Pull theme icon values, filter out "A,K,Q,J,10" style entries
-  const vals = Object.values(t.icons).filter(Boolean);
-  const pool = [...new Set(vals)].filter((v) => !/^[A-Z0-9]+$/.test(v)); // removes A,K,Q,J,10
-  if (pool.length < 4)
-    throw new Error(`Theme ${ticketDef.slotThemeKey} icon pool too small`);
-  return pool;
+  const pool = [];
+
+  for (const [code, symbol] of Object.entries(theme.symbols || {})) {
+    const icon = theme.icons?.[code];
+    if (!icon) continue;
+
+    // Exclude slot jackpots (we use 🏆 in scratch instead)
+    if (symbol?.jackpot) continue;
+
+    // Optional: exclude slot wild (scratch uses 🃏)
+    if (symbol?.wild) continue;
+
+    // Remove plain text icons like A/K/Q/J/10
+    if (/^[A-Z0-9]+$/.test(icon)) continue;
+
+    pool.push(icon);
+  }
+
+  const unique = [...new Set(pool)];
+
+  if (unique.length < 4)
+    throw new Error(
+      `Theme ${ticketDef.slotThemeKey} icon pool too small`
+    );
+
+  return unique;
 }
 
 function findTripleSets(boardIcons) {

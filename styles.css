@@ -2278,3 +2278,55 @@ body {
 .scratch-icon.jackpot {
   filter: drop-shadow(0 0 12px rgba(255,215,0,0.55));
 }
+
+/* Default fallback */
+.scratch-board {
+  --scratch-accent: #cfa04a;
+}
+
+/* Header accent */
+.scratch-head {
+  border-bottom: 2px solid var(--scratch-accent);
+}
+
+.scratch-theme {
+  color: var(--scratch-accent);
+}
+
+/* Winning glow */
+.scratch-board.win {
+  box-shadow: 0 0 24px var(--scratch-accent);
+  border-color: var(--scratch-accent);
+}
+
+/* Match-3 winning cells */
+.scratch-cell.match-win {
+  border-color: var(--scratch-accent);
+  box-shadow: 0 0 18px var(--scratch-accent);
+}
+
+/* Lucky number hits */
+.scratch-num.hit {
+  background: var(--scratch-accent);
+  color: #111;
+  box-shadow: 0 0 10px var(--scratch-accent);
+}
+
+/* Jackpot emphasis */
+.scratch-icon.jackpot {
+  text-shadow: 0 0 16px var(--scratch-accent);
+}
+
+/* Optional subtle surface tint */
+.scratch-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 30%,
+    var(--scratch-accent) 0%,
+    transparent 60%
+  );
+  opacity: 0.08;
+}

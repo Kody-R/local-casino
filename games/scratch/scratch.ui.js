@@ -1,5 +1,18 @@
 import { tickets } from "./scratch.tickets.js";
 import { generateTicket } from "./scratch.engine.js";
+import { THEMES } from "../slots/slots.themes.js"; // adjust path if needed
+
+function setTheme(ticketDef) {
+  themeEl.textContent = ticketDef.themeLabel ?? "🎟️ Ticket";
+  boardEl.dataset.theme = ticketDef.themeKey || "";
+  subEl.textContent = ticketDef.subtitle || "";
+
+  const theme = THEMES[ticketDef.slotThemeKey];
+  const accent = theme?.accent || "#cfa04a";
+
+  // Apply CSS variable
+  boardEl.style.setProperty("--scratch-accent", accent);
+}
 
 function getScratchPercent(ctx, w, h) {
   const step = 6;
