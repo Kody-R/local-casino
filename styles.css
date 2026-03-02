@@ -2265,3 +2265,16 @@ body {
   transform: scale(1.12);
   text-shadow: 0 0 14px rgba(255, 215, 0, 0.55);
 }
+
+/* Optional: emphasize wild/jackpot symbols */
+.scratch-icon {
+  font-size: 32px;
+}
+
+.scratch-icon.wild {
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.35));
+}
+
+.scratch-icon.jackpot {
+  filter: drop-shadow(0 0 12px rgba(255,215,0,0.55));
+}

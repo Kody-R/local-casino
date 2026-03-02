@@ -142,17 +142,21 @@ export function mountScratch(container, store) {
   }
 
   function renderTicketBody(ticketDef, gen) {
+    boardEl.classList.remove("lucky-ticket");
     // Match-3: 3×3 board of amounts
     if (gen.kind === "match3") {
+      const wild = ticketDef.wildIcon || "🃏";
+      const jp = ticketDef.jackpotIcon || "🏆";
+
       bodyEl.innerHTML = `
     <div class="scratch-grid">
       ${gen.boardIcons
         .map(
           (icon, i) => `
-          <div class="scratch-cell scratch-iconCell" data-i="${i}">
-            <div class="scratch-icon">${icon}</div>
-          </div>
-        `,
+  <div class="scratch-cell scratch-iconCell" data-i="${i}">
+    <div class="scratch-icon ${icon === wild ? "wild" : ""} ${icon === jp ? "jackpot" : ""}">${icon}</div>
+  </div>
+`,
         )
         .join("")}
     </div>
@@ -208,14 +212,17 @@ export function mountScratch(container, store) {
           ? `WIN! ${gen.matches} match(es) — pays ${fmt}.`
           : "No matches this time.";
     } else if (gen.kind === "match3") {
-      msgEl.textContent =
-        gen.winAmount > 0
-          ? gen.match3Mode === "perSet"
+      if (gen.isJackpot) {
+        msgEl.textContent = `🏆 JACKPOT! Pays ${fmt}.`;
+      } else if (gen.winAmount > 0) {
+        msgEl.textContent =
+          gen.match3Mode === "perSet"
             ? `WIN! ${gen.setCount} set(s) pays ${fmt}.`
-            : `WIN! Match-3 pays ${fmt}.`
-          : "No match-3 this time.";
+            : `WIN! Match-3 pays ${fmt}.`;
+      } else {
+        msgEl.textContent = "No match-3 this time.";
+      }
     }
-    
 
     await store.settle(
       roundId,

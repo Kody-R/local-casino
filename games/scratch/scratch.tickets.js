@@ -1,4 +1,96 @@
-export const tickets = [
+import { THEMES, THEME_KEYS } from "../slots/slots.themes.js"; // adjust path if needed
+
+function pickMatch3IconSet(theme) {
+  // Prefer the theme's iconic set: Wild + 4 mains (A,K,Q,J,T) if present.
+  const keys = ["W", "A", "K", "Q", "J", "T"];
+  const icons = keys.map(k => theme.icons?.[k]).filter(Boolean);
+
+  // If any are missing, fall back to "all non-jackpot icons" and take first 6.
+  if (icons.length >= 6) return icons.slice(0, 6);
+
+  const fallback = Object.entries(theme.symbols || {})
+    .filter(([code, s]) => !s?.jackpot) // exclude MJ/MR/MJ2 by default
+    .map(([code]) => theme.icons?.[code])
+    .filter(Boolean);
+
+  // Unique + cap to 6
+  return [...new Set(fallback)].slice(0, 6);
+}
+
+function themeLabelFor(themeKey, theme) {
+  // Use the Wild icon + name as the label header
+  const lead = theme?.icons?.W || "🎟️";
+  return `${lead} ${theme?.name || themeKey}`;
+}
+
+function makeMatch3Ticket(themeKey, theme, price) {
+  return {
+    id: `match3_${themeKey}_${price}`,
+    type: "match3",
+    match3Mode: "perSet", // supports double/triple set wins if your engine is in perSet mode
+    name: "Match3",
+    themeKey: themeKey,
+    themeLabel: themeLabelFor(themeKey, theme),
+    slotThemeKey: themeKey,
+    subtitle: "Match 3 symbols to win.",
+    price,
+    icons: pickMatch3IconSet(theme),
+
+    // Keep your existing tier philosophy; tweak per price if you want
+    tiers: [
+      { label: "LOSE", mult: 0, weight: 7000 },
+      { label: "2x", mult: 2, weight: 2200 },
+      { label: "5x", mult: 5, weight: 650 },
+      { label: "20x", mult: 20, weight: 130 },
+      { label: "100x", mult: 100, weight: 20 },
+    ],
+    decoys: [1, 2, 3, 4, 5, 10, 20, 50],
+  };
+}
+
+function makeLuckyTicket(themeKey, theme, price) {
+  return {
+    id: `lucky_${themeKey}_${price}`,
+    type: "lucky",
+    themeKey: themeKey,
+    name: "Lucky",
+    themeLabel: themeLabelFor(themeKey, theme),
+    slotThemeKey: themeKey,
+    subtitle: "Match Winning Numbers to win prizes.",
+    price,
+
+    winNumsCount: 5,
+    yourNumsCount: 10,
+
+    matchChance: [
+      { matches: 0, weight: 7000 },
+      { matches: 1, weight: 2200 },
+      { matches: 2, weight: 700 },
+      { matches: 3, weight: 100 },
+    ],
+
+    prizeTiers: [
+      { label: "2x", mult: 2, weight: 5200 },
+      { label: "5x", mult: 5, weight: 2700 },
+      { label: "20x", mult: 20, weight: 900 },
+      { label: "100x", mult: 100, weight: 200 },
+    ],
+  };
+}
+
+// --- Auto-create scratchers from your slot themes ---
+const autoTickets = THEME_KEYS.flatMap((key) => {
+  const theme = THEMES[key];
+  // Choose price tiers however you like. Example: $25 + $50 for every theme.
+  return [
+    makeMatch3Ticket(key, theme, 25),
+    makeLuckyTicket(key, theme, 25),
+    makeMatch3Ticket(key, theme, 50),
+    makeLuckyTicket(key, theme, 50),
+  ];
+});
+
+export const manualTickets = [
   // =========================
   // Match-3 Themed Scratchers
   // =========================
@@ -132,3 +224,5 @@ export const tickets = [
     ],
   },
 ];
+
+export const tickets = [...manualTickets, ...autoTickets];
