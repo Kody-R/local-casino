@@ -1,5 +1,5 @@
 import { tickets } from "./scratch.tickets.js";
-import { generateTicket } from "./scratch.engine.js";
+import { generateTicket, buildSymbolMultFromTheme } from "./scratch.engine.js";
 import { THEMES } from "../slots/slots.themes.js"; // adjust path if needed
 
 function getScratchPercent(ctx, w, h) {
@@ -82,6 +82,49 @@ export function mountScratch(container, store) {
     boardEl.style.setProperty("--scratch-accent", accent);
   }
 
+  function renderMatch3Legend(ticketDef) {
+    const wild = ticketDef.wildIcon || "🃏";
+    const jp = ticketDef.jackpotIcon || "🏆";
+
+    // Build the same multiplier map used by the engine
+    const multMap = buildSymbolMultFromTheme(
+      ticketDef.slotThemeKey || ticketDef.themeKey,
+    );
+
+    // Pull the icon pool so we only show relevant symbols
+    // (engine also uses iconPoolForTicket, but UI can just use multMap keys)
+    const entries = Object.entries(multMap)
+      .map(([icon, mult]) => ({ icon, mult: Number(mult) || 1 }))
+      .filter((x) => x.mult > 1)
+      .sort((a, b) => b.mult - a.mult)
+      .slice(0, 5); // show top 5 boosted symbols
+
+    const pills = entries.length
+      ? entries
+          .map(
+            (e) => `
+        <span class="scratch-legendPill">
+          <span class="scratch-legendIcon">${e.icon}</span>
+          <span class="scratch-legendText">×${e.mult}</span>
+        </span>
+      `,
+          )
+          .join("")
+      : `<span class="scratch-legendPill dim">No symbol boosts</span>`;
+
+    return `
+    <div class="scratch-legend">
+      <div class="scratch-legendLeft">
+        ${pills}
+      </div>
+      <div class="scratch-legendRight">
+        <span class="scratch-legendPill special"><span class="scratch-legendIcon">${wild}</span><span class="scratch-legendText">WILD</span></span>
+        <span class="scratch-legendPill special"><span class="scratch-legendIcon">${jp}</span><span class="scratch-legendText">JACKPOT</span></span>
+      </div>
+    </div>
+  `;
+  }
+
   function resizeCanvasAndCover() {
     const rect = surfaceEl.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -156,18 +199,19 @@ export function mountScratch(container, store) {
       const jp = ticketDef.jackpotIcon || "🏆";
 
       bodyEl.innerHTML = `
-    <div class="scratch-grid">
-      ${gen.boardIcons
-        .map(
-          (icon, i) => `
-  <div class="scratch-cell scratch-iconCell" data-i="${i}">
-    <div class="scratch-icon ${icon === wild ? "wild" : ""} ${icon === jp ? "jackpot" : ""}">${icon}</div>
-  </div>
-`,
-        )
-        .join("")}
-    </div>
-  `;
+      ${renderMatch3Legend(ticketDef)}
+      <div class="scratch-grid">
+        ${gen.boardIcons
+          .map(
+            (icon, i) => `
+              <div class="scratch-cell scratch-iconCell" data-i="${i}">
+                <div class="scratch-icon ${icon === wild ? "wild" : ""} ${icon === jp ? "jackpot" : ""}">${icon}</div>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
       return;
     }
 

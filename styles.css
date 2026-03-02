@@ -2330,3 +2330,53 @@ body {
   );
   opacity: 0.08;
 }
+
+.scratch-legend{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+}
+
+.scratch-legendLeft,
+.scratch-legendRight{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.scratch-legendPill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  font-weight:900;
+  font-size:12px;
+}
+
+.scratch-legendPill.special{
+  border-color: color-mix(in srgb, var(--scratch-accent) 45%, rgba(255,255,255,0.14));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--scratch-accent) 35%, transparent);
+}
+
+.scratch-legendPill.dim{
+  opacity:0.7;
+}
+
+.scratch-legendIcon{
+  font-size:16px;
+  line-height:1;
+}
+
+.scratch-legendText{
+  letter-spacing:0.3px;
+}

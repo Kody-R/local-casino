@@ -1,6 +1,6 @@
 import { THEMES } from "../slots/slots.themes.js"; // adjust path to match your project
 
-function buildSymbolMultFromTheme(
+export function buildSymbolMultFromTheme(
   slotThemeKey,
   { minMult = 1, maxMult = 5 } = {},
 ) {
