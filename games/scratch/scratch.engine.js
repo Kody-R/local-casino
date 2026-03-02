@@ -88,37 +88,49 @@ function chance(p) {
 }
 
 function iconPoolForTicket(ticketDef) {
-  // Explicit override still allowed
   if (ticketDef.icons?.length) return ticketDef.icons;
 
   const theme = THEMES[ticketDef.slotThemeKey];
   if (!theme)
     throw new Error(`Unknown slotThemeKey: ${ticketDef.slotThemeKey}`);
 
+  const rankFallback = {
+    A: "♦️",
+    K: "👑",
+    Q: "💎",
+    J: "🎲",
+    T: "🔟",
+  };
+
   const pool = [];
 
   for (const [code, symbol] of Object.entries(theme.symbols || {})) {
-    const icon = theme.icons?.[code];
-    if (!icon) continue;
-
-    // Exclude slot jackpots (we use 🏆 in scratch instead)
+    // Skip slot jackpots for scratch (we use 🏆 in scratch)
     if (symbol?.jackpot) continue;
 
-    // Optional: exclude slot wild (scratch uses 🃏)
-    if (symbol?.wild) continue;
+    // If the slot icon is text (A/K/Q/J/10), replace with fallback emoji
+    const raw = theme.icons?.[code];
+    let icon = raw;
 
-    // Remove plain text icons like A/K/Q/J/10
-    if (/^[A-Z0-9]+$/.test(icon)) continue;
+    const isTextRank = typeof raw === "string" && /^[A-Z0-9]+$/.test(raw);
+    if (isTextRank) icon = rankFallback[code] || raw;
+
+    if (!icon) continue;
+
+    // Optional: exclude slot wild if you want scratch wild to be only 🃏
+    if (symbol?.wild && ticketDef.excludeSlotWild !== false) continue;
 
     pool.push(icon);
   }
 
   const unique = [...new Set(pool)];
 
-  if (unique.length < 4)
-    throw new Error(
-      `Theme ${ticketDef.slotThemeKey} icon pool too small`
-    );
+  // If still too small, last resort: include ALL non-empty icons (even jackpots)
+  if (unique.length < 4) {
+    const all = Object.values(theme.icons || {}).filter(Boolean);
+    const fixed = all.map((v) => (/^[A-Z0-9]+$/.test(v) ? "🔶" : v));
+    return [...new Set(fixed)];
+  }
 
   return unique;
 }
