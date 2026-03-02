@@ -63,6 +63,9 @@ async function loadGame(gameKey) {
   } else if (gameKey === "bonusbowling") {
     const mod = await import("./games/bonusbowling/bonusbowling.ui.js");
     mod.mountBonusBowling(els.gameMount, store);
+  } else if (gameKey === "scratch") {
+  const mod = await import("./games/scratch/scratch.ui.js");
+  mod.mountScratch(els.gameMount, store);
   } else {
     els.gameMount.textContent = "Unknown game.";
   }

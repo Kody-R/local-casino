@@ -1,0 +1,1 @@
+1. Fix Slot Betting Logic with different rows and columns.

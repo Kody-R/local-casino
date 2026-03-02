@@ -194,7 +194,7 @@ export const THEMES = {
     name: "Retro Fruit",
     accent: "#ff5aa5",
     showLabels: false,
-    grid: { rows: 5, cols: 5 },
+    grid: { rows: 3, cols: 6 },
 
     symbols: {
       W: { name: "Wild", payout: { 3: 50, 4: 220, 5: 1000 }, wild: true },
@@ -288,6 +288,20 @@ export const THEMES = {
         MJ2: 0.02,
       },
       // Reel 5 (slightly lower features)
+      {
+        A: 18,
+        K: 18,
+        Q: 16,
+        J: 14,
+        T: 14,
+        W: 2,
+        S: 1.8,
+        B: 0.9,
+        C: 2.7,
+        MJ: 0.08,
+        MR: 0.04,
+        MJ2: 0.015,
+      },
       {
         A: 18,
         K: 18,

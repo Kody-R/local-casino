@@ -54,12 +54,7 @@ export function mountSlots(mountEl, store) {
       <div class="muted" id="sl_bank">—</div>
     </div>
 
-    <div class="slotsStage">
-      <div class="reel themeAccentBorder" data-reel="0"><div class="strip"></div></div>
-      <div class="reel themeAccentBorder" data-reel="1"><div class="strip"></div></div>
-      <div class="reel themeAccentBorder" data-reel="2"><div class="strip"></div></div>
-      <div class="reel themeAccentBorder" data-reel="3"><div class="strip"></div></div>
-      <div class="reel themeAccentBorder" data-reel="4"><div class="strip"></div></div>
+    <div class="slotsStage" id="sl_stage">
       <div class="paylineGlow"></div>
     </div>
 
@@ -116,16 +111,50 @@ export function mountSlots(mountEl, store) {
     rules: mountEl.querySelector("#sl_rules"),
   };
 
+  const stageEl = mountEl.querySelector("#sl_stage");
+
+  // IMPORTANT: don’t keep reels as a “fixed” array created once.
+  // You’ll rebuild it whenever the theme changes.
+  function rebuildStageForTheme(theme) {
+    const rows = theme.grid?.rows ?? 3;
+    const cols = theme.grid?.cols ?? 5;
+
+    // Set CSS variables so the stage + reel heights auto-adjust
+    stageEl.style.setProperty("--slot-cols", cols);
+    stageEl.style.setProperty("--slot-rows", rows);
+
+    // Keep the paylineGlow div
+    stageEl.innerHTML = `
+    ${Array.from(
+      { length: cols },
+      (_, i) => `
+      <div class="reel themeAccentBorder" data-reel="${i}">
+        <div class="strip"></div>
+      </div>
+    `,
+    ).join("")}
+    <div class="paylineGlow"></div>
+  `;
+
+    // refresh reels reference
+    el.reels = Array.from(stageEl.querySelectorAll(".reel"));
+  }
+
   let coinMeter = 0;
   el.theme.addEventListener("change", async () => {
     frozenState = null;
     const themeKey = el.theme.value;
     const theme = THEMES[themeKey];
+
     applyTheme(mountEl, theme);
     mountEl.classList.toggle("noLabels", theme.showLabels === false);
-    renderStatic(el.reels, THEMES[el.theme.value]);
+
+    rebuildStageForTheme(theme); // ✅ build correct # reels/rows first
+    renderStatic(el.reels, theme); // ✅ then paint strips
     clearHighlights(mountEl);
+
     renderRules(el, theme);
+    refreshLinesDropdown(theme);
     rebuildLinesSelect(el.lines, theme);
 
     // refresh meters to the selected theme
@@ -138,9 +167,6 @@ export function mountSlots(mountEl, store) {
 
   el.btnClearHL.addEventListener("click", () => clearHighlights(mountEl));
 
-  // medium realism: cascading reel stop delays
-  const STOP_DELAYS = [0, 160, 320, 480, 640];
-
   let freeSpinsLeft = 0;
   let freeSpinTotal = 0;
   let freeSpinSessionWin = 0;
@@ -149,9 +175,16 @@ export function mountSlots(mountEl, store) {
   let frozenState = null; // Arctic Fortune persistent freeze
 
   // initial render
-  renderStatic(el.reels, THEMES[el.theme.value]);
-  renderRules(el, THEMES[el.theme.value]);
-  rebuildLinesSelect(el.lines, THEMES[el.theme.value]);
+  const initTheme = THEMES[el.theme.value];
+
+  applyTheme(mountEl, initTheme);
+  mountEl.classList.toggle("noLabels", initTheme.showLabels === false);
+
+  rebuildStageForTheme(initTheme); // ✅ create reel DOM first
+  renderStatic(el.reels, initTheme); // ✅ now strips exist
+  renderRules(el, initTheme);
+  refreshLinesDropdown(initTheme);
+  rebuildLinesSelect(el.lines, initTheme);
 
   async function loadCoinMeter(store, themeKey) {
     return Number(await store.getSetting(`COIN_METER:${themeKey}`, 0)) || 0;
@@ -278,6 +311,21 @@ export function mountSlots(mountEl, store) {
       </div>
     </div>
   `;
+  }
+
+  function refreshLinesDropdown(theme) {
+    const maxLines = theme.paylines?.length ?? 1;
+
+    const allowed = [1, 3, 5, 7, 10, 15, 20].filter((n) => n <= maxLines);
+    if (allowed.length === 0) allowed.push(1);
+
+    el.lines.innerHTML = allowed
+      .map((n) => `<option value="${n}">${n}</option>`)
+      .join("");
+
+    // Clamp selection
+    const cur = parseInt(el.lines.value || "1", 10);
+    if (cur > maxLines) el.lines.value = String(allowed[allowed.length - 1]);
   }
 
   function highlightWins(mountEl, theme, res) {
@@ -437,7 +485,9 @@ export function mountSlots(mountEl, store) {
       }
 
       // animate reels to show res.grid
-      await animateToGrid(el.reels, res.grid, STOP_DELAYS, theme);
+      const cols = theme.grid?.cols ?? 5;
+      const stopDelays = makeStopDelays(cols);
+      await animateToGrid(el.reels, res.grid, stopDelays, theme);
       highlightWins(mountEl, theme, res);
       renderWinBreakdown(el, theme, res, useBet);
 
@@ -679,6 +729,10 @@ function rebuildLinesSelect(elLines, theme) {
 }
 
 /* ---------- visuals ---------- */
+
+function makeStopDelays(cols, step = 160) {
+  return Array.from({ length: cols }, (_, i) => i * step);
+}
 
 function renderStatic(reels, theme) {
   reels.forEach((reel, i) => {
