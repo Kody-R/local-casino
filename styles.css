@@ -2237,3 +2237,31 @@ body {
 .scratch-board[data-theme="route66"].lucky-ticket .scratch-num.hit {
   box-shadow: 0 0 16px rgba(250,204,21,0.7);
 }
+
+.scratch-iconCell {
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+
+.scratch-icon {
+  font-size: 32px;
+  transition: 180ms ease;
+}
+
+.scratch-board.win .scratch-icon {
+  transform: scale(1.1);
+  text-shadow: 0 0 12px rgba(255,215,0,0.6);
+}
+
+/* Match-3: highlight only the winning triple */
+.scratch-cell.match-win {
+  border-color: rgba(255, 215, 0, 0.55);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.scratch-cell.match-win .scratch-icon {
+  transform: scale(1.12);
+  text-shadow: 0 0 14px rgba(255, 215, 0, 0.55);
+}

@@ -126,20 +126,34 @@ export function mountScratch(container, store) {
     }, 180);
   }
 
+  function highlightMatch3Wins() {
+  if (!active || active.gen?.kind !== "match3") return;
+  const idxs = active.gen.winIdxs || [];
+  if (!idxs.length) return;
+
+  const cells = bodyEl.querySelectorAll(".scratch-cell[data-i]");
+  idxs.forEach((i) => {
+    const el = bodyEl.querySelector(`.scratch-cell[data-i="${i}"]`);
+    if (el) el.classList.add("match-win");
+  });
+}
+
   function renderTicketBody(ticketDef, gen) {
     // Match-3: 3×3 board of amounts
     if (gen.kind === "match3") {
-      boardEl.classList.remove("lucky-ticket");
       bodyEl.innerHTML = `
-        <div class="scratch-grid">
-          ${gen.boardText
-            .map(
-              (t) =>
-                `<div class="scratch-cell"><div class="scratch-amt">${t}</div></div>`,
-            )
-            .join("")}
-        </div>
-      `;
+    <div class="scratch-grid">
+      ${gen.boardIcons
+        .map(
+          (icon, i) => `
+          <div class="scratch-cell scratch-iconCell" data-i="${i}">
+            <div class="scratch-icon">${icon}</div>
+          </div>
+        `,
+        )
+        .join("")}
+    </div>
+  `;
       return;
     }
 
@@ -181,6 +195,7 @@ export function mountScratch(container, store) {
     const { roundId, ticketDef, gen } = active;
 
     setBoardState(gen.winAmount > 0 ? "win" : "lose");
+    highlightMatch3Wins();
 
     const fmt = new Intl.NumberFormat().format(gen.winAmount);
     if (gen.kind === "lucky") {

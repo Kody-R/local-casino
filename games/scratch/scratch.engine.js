@@ -70,12 +70,42 @@ function generateMatch3(ticketDef) {
     }
   }
 
+  // Build icon board
+  const icons = ticketDef.icons;
+  let boardIcons = new Array(9);
+
+  // Pick winning icon if win
+  if (winAmount > 0) {
+    const winIcon = icons[randInt(icons.length)];
+    const idxs = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, 3);
+    for (const i of idxs) boardIcons[i] = winIcon;
+
+    for (let i = 0; i < 9; i++) {
+      if (!boardIcons[i]) {
+        boardIcons[i] = icons[randInt(icons.length)];
+      }
+    }
+  } else {
+    // no triple allowed
+    let counts = {};
+    for (let i = 0; i < 9; i++) {
+      let tries = 0;
+      while (tries++ < 200) {
+        const icon = icons[randInt(icons.length)];
+        const c = counts[icon] ?? 0;
+        if (c >= 2) continue;
+        boardIcons[i] = icon;
+        counts[icon] = c + 1;
+        break;
+      }
+    }
+  }
+
   return {
     kind: "match3",
     tierLabel: tier.label,
     winAmount,
-    board: amounts,
-    boardText: amounts.map((x) => `$${fmtAmount(x)}`),
+    boardIcons,
   };
 }
 

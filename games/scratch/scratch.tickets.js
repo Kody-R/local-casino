@@ -8,8 +8,11 @@ export const tickets = [
     name: "Match3",
     themeKey: "baseball",
     themeLabel: "⚾ Grand Slam Gold",
-    subtitle: "Match 3 amounts to win.",
+    subtitle: "Match 3 symbols to win.",
     price: 25,
+
+    icons: ["⚾", "🧢", "🏟️", "🥇", "🎯"], // ← ADD THIS
+
     tiers: [
       { label: "LOSE", mult: 0, weight: 7000 },
       { label: "2x", mult: 2, weight: 2100 },
@@ -28,6 +31,8 @@ export const tickets = [
     themeLabel: "🌙 Neon Night 1985",
     subtitle: "Match 3 amounts to win.",
     price: 50,
+    icons: ["🌙","🎵","🕶️","💾","🌆"],
+
     tiers: [
       { label: "LOSE", mult: 0, weight: 7200 },
       { label: "2x", mult: 2, weight: 2000 },
@@ -46,6 +51,8 @@ export const tickets = [
     themeLabel: "🛣️ Route 66 Riches",
     subtitle: "Match 3 amounts to win.",
     price: 25,
+    icons: ["🛣️","⛽","🚗","🛻","🧭"],
+    
     tiers: [
       { label: "LOSE", mult: 0, weight: 6900 },
       { label: "2x", mult: 2, weight: 2250 },
