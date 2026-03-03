@@ -368,7 +368,7 @@ export const THEMES = {
       holdSpin: {
         triggerCoins: 6,
         respins: 3,
-        grid: { rows: 5, cols: 5 },
+        grid: { rows: 3, cols: 6 },
         jackpots: { MINI: 40, MINOR: 150, MAJOR: 800 },
         progressive: {
           seed: { MINI: 50, MINOR: 200, MAJOR: 1000 },

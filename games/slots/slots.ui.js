@@ -1,6 +1,7 @@
 // games/slots/slots.ui.js
 import { THEMES, THEME_KEYS } from "./slots.themes.js";
 import { spinSlots, startHoldSpin, holdSpinStep } from "./slots.engine.js";
+import { resolvePaylines, resolveBetPerLineOptions } from "./slots.config.js";
 
 const DEFAULT_ICONS = {
   W: "⭐",
@@ -31,13 +32,11 @@ export function mountSlots(mountEl, store) {
     <div class="slotsTop row">
       <label class="muted">Lines
         <select id="sl_lines">
-          ${[1, 3, 5, 7, 10].map((n) => `<option value="${n}">${n}</option>`).join("")}
         </select>
       </label>
 
       <label class="muted">Bet/Line
         <select id="sl_bpl">
-          ${[1, 2, 5, 10, 25].map((n) => `<option value="${n}">${n}</option>`).join("")}
         </select>
       </label>
 
@@ -155,7 +154,7 @@ export function mountSlots(mountEl, store) {
 
     renderRules(el, theme);
     refreshLinesDropdown(theme);
-    rebuildLinesSelect(el.lines, theme);
+    refreshBetPerLineDropdown(initTheme);
 
     // refresh meters to the selected theme
     const progCfg = theme.bonus?.holdSpin?.progressive;
@@ -184,7 +183,7 @@ export function mountSlots(mountEl, store) {
   renderStatic(el.reels, initTheme); // ✅ now strips exist
   renderRules(el, initTheme);
   refreshLinesDropdown(initTheme);
-  rebuildLinesSelect(el.lines, initTheme);
+  refreshBetPerLineDropdown(initTheme);
 
   async function loadCoinMeter(store, themeKey) {
     return Number(await store.getSetting(`COIN_METER:${themeKey}`, 0)) || 0;
@@ -313,8 +312,21 @@ export function mountSlots(mountEl, store) {
   `;
   }
 
+  function refreshBetPerLineDropdown(theme) {
+    const linesEnabled = Number(el.lines.value || 1);
+    const opts = resolveBetPerLineOptions(theme, linesEnabled);
+    const cur = Number(el.bpl.value || opts[0] || 1);
+
+    el.bpl.innerHTML = opts
+      .map((n) => `<option value="${n}">${n}</option>`)
+      .join("");
+    el.bpl.value = String(opts.includes(cur) ? cur : (opts[0] ?? 1));
+  }
+
   function refreshLinesDropdown(theme) {
-    const maxLines = theme.paylines?.length ?? 1;
+    const rows = theme.grid?.rows ?? 3;
+    const cols = theme.grid?.cols ?? 5;
+    const maxLines = resolvePaylines(theme, rows, cols).length;
 
     const allowed = [1, 3, 5, 7, 10, 15, 20].filter((n) => n <= maxLines);
     if (allowed.length === 0) allowed.push(1);
@@ -341,7 +353,9 @@ export function mountSlots(mountEl, store) {
 
     // ---------------- Line Wins ----------------
     for (const w of res.lineWins) {
-      const line = theme.paylines[w.lineIndex];
+      const paylines = resolvePaylines(theme, ROWS, COLS);
+      const line = paylines[w.lineIndex];
+      if (!line) continue;
 
       for (let reel = 0; reel < w.count; reel++) {
         const row = line[reel];

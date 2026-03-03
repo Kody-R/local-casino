@@ -1,3 +1,5 @@
+import { resolvePaylines } from "./slots.config.js";
+
 // games/slots/slots.engine.js
 export function spinSlots(theme, { betPerLine, linesEnabled, prevFrozen }) {
   const { symbols, paylines, weights, bonus, biasPolicy } = theme;
@@ -67,7 +69,12 @@ export function spinSlots(theme, { betPerLine, linesEnabled, prevFrozen }) {
   // ----------------------------------------------------------------------
 
   // ---- the rest of your existing win logic can remain the same ----
-  const activeLines = paylines.slice(0, linesEnabled);
+  const allPaylines = resolvePaylines(theme, ROWS, COLS);
+  const safeLinesEnabled = Math.max(
+    1,
+    Math.min(Number(linesEnabled) || 1, allPaylines.length),
+  );
+  const activeLines = allPaylines.slice(0, safeLinesEnabled);
 
   let lineWins = [];
   let totalLinePay = 0;
@@ -140,7 +147,12 @@ function computeBias(totalBet, linesEnabled, policy) {
 }
 
 function rollReelWindow(theme, reelIndex, bias, rows) {
-  const base = theme.weights[reelIndex];
+  const base =
+    theme.weights?.[reelIndex] ??
+    theme.weights?.[theme.weights.length - 1] ??
+    theme.weights?.[0];
+
+  if (!base) throw new Error(`Theme is missing weights for reel ${reelIndex}.`);
   const w0 = applyBiasToWeights(base, bias);
 
   const out = [];
@@ -296,7 +308,7 @@ function bestLineWin(lineSyms, symbols) {
   let best = { pay: 0, sym: null, count: 0 };
   for (const base of bases) {
     let count = 0;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < lineSyms.length; i++) {
       const s = lineSyms[i];
       if (s === base || (isWild(s) && isLineEligible(base))) count++;
       else break;
