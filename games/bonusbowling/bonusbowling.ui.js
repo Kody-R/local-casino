@@ -28,7 +28,7 @@ export function mountBonusBowling(rootEl, store) {
 
   async function bal() {
     if (!store.currentPlayerId) return 0;
-    return await store.balance(store.currentPlayerId);
+    return await store.getBalance(store.currentPlayerId);
   }
 
   async function paint() {

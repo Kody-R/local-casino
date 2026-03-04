@@ -39,7 +39,7 @@ export async function initStore() {
       return queryIndex(db, "ledger", "by_player", playerId);
     },
 
-    async getBalance(playerId){
+    async getBalance(playerId) {
       const rows = await store.ledgerRows(playerId);
       return rows.reduce((s, r) => s + r.amount, 0);
     },
@@ -131,6 +131,9 @@ export async function initStore() {
       await put(db, "settings", { key, value });
     },
   };
+
+  // Back-compat alias (some UIs call store.balance())
+  store.balance = async (playerId) => store.getBalance(playerId);
 
   return store;
 }
