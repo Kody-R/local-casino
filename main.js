@@ -66,6 +66,9 @@ async function loadGame(gameKey) {
   } else if (gameKey === "scratch") {
   const mod = await import("./games/scratch/scratch.ui.js");
   mod.mountScratch(els.gameMount, store);
+  } else if (gameKey === "freebetbj") {
+  const mod = await import("./games/freebetbj/freebetbj.ui.js");
+  mod.mountFreeBetBJ(els.gameMount, store);
   } else {
     els.gameMount.textContent = "Unknown game.";
   }
