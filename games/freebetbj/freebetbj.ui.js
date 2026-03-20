@@ -90,7 +90,6 @@ export function mountFreeBetBJ(mountEl, store) {
 
     savePayouts: mountEl.querySelector("#fb_savePayouts"),
 
-    // settings inputs
     h17: mountEl.querySelector("#fb_h17"),
     pogEnabled: mountEl.querySelector("#fb_pog_enabled"),
     pog7: mountEl.querySelector("#fb_pog_7"),
@@ -123,6 +122,63 @@ export function mountFreeBetBJ(mountEl, store) {
     }
   }
 
+  function finishBlackjackHandIfNeeded(live) {
+    if (!live || live.status !== "PLAYER_TURN") return false;
+    const h = getActiveHand(live);
+    if (!h || h.finished) return false;
+
+    const t = handTotals(h.cards);
+    if (!(t.isBlackjack && h.cards.length === 2)) return false;
+
+    h.finished = true;
+    h.outcome = "BJ";
+
+    const next = live.hands.findIndex((hh) => !hh.finished);
+    if (next >= 0) {
+      live.active = next;
+    } else {
+      live.status = "DEALER_TURN";
+    }
+    return true;
+  }
+
+  // AUTO-APPLY FREE SPLITS / FREE DOUBLES
+  function autoApplyFreeActions() {
+    const live = state.live;
+    if (!live) return false;
+
+    let changed = false;
+    let safety = 0;
+
+    while (live.status === "PLAYER_TURN" && safety < 50) {
+      safety++;
+
+      // Auto-finish natural blackjacks first
+      if (finishBlackjackHandIfNeeded(live)) {
+        changed = true;
+        continue;
+      }
+
+      // Priority 1: free split first
+      if (canSplitFree(live)) {
+        splitFree(live);
+        changed = true;
+        continue;
+      }
+
+      // Priority 2: free double
+      if (canDoubleFree(live)) {
+        doubleFree(live);
+        changed = true;
+        continue;
+      }
+
+      break;
+    }
+
+    return changed;
+  }
+
   function renderDealer() {
     if (!state.live) {
       el.dealer.innerHTML = "";
@@ -147,6 +203,22 @@ export function mountFreeBetBJ(mountEl, store) {
     }
   }
 
+  function makeTokenBadge(text) {
+    const badge = document.createElement("span");
+    badge.className = "chip";
+    badge.style.display = "inline-block";
+    badge.style.marginLeft = "6px";
+    badge.style.padding = "2px 8px";
+    badge.style.border = "1px solid #d4af37";
+    badge.style.borderRadius = "999px";
+    badge.style.fontSize = "12px";
+    badge.style.fontWeight = "700";
+    badge.style.background = "rgba(212,175,55,.15)";
+    badge.style.color = "#d4af37";
+    badge.textContent = text;
+    return badge;
+  }
+
   function renderHands() {
     el.hands.innerHTML = "";
     if (!state.live) return;
@@ -159,15 +231,28 @@ export function mountFreeBetBJ(mountEl, store) {
       wrap.className = "s21-hand" + (i === live.active ? " is-active" : "");
 
       const t = handTotals(h.cards);
+
       const title = document.createElement("div");
       title.className = "muted";
-      title.textContent =
+
+      const titleText = document.createElement("span");
+      titleText.textContent =
         `Hand ${h.id}` +
-        (h.stakePaid ? "" : " (FREE)") +
-        (h.freeDouble ? " • FREE DOUBLE" : "") +
-        (h.paidDouble ? " • DOUBLE" : "") +
         (h.finished ? ` • ${h.outcome || ""}` : "") +
         ` • Total: ${t.isBlackjack ? "BJ" : t.best}`;
+
+      title.appendChild(titleText);
+
+      // Token / marker badges by hand
+      if (!h.stakePaid) {
+        title.appendChild(makeTokenBadge("FREE SPLIT TOKEN"));
+      }
+      if (h.freeDouble) {
+        title.appendChild(makeTokenBadge("FREE DOUBLE TOKEN"));
+      }
+      if (h.paidDouble) {
+        title.appendChild(makeTokenBadge("PAID DOUBLE"));
+      }
 
       const cards = document.createElement("div");
       cards.className = "s21-cards";
@@ -176,11 +261,12 @@ export function mountFreeBetBJ(mountEl, store) {
       wrap.appendChild(title);
       wrap.appendChild(cards);
 
-      // allow selecting active hand while player turn
       if (live.status === "PLAYER_TURN" && !h.finished) {
         wrap.style.cursor = "pointer";
-        wrap.addEventListener("click", () => {
+        wrap.addEventListener("click", async () => {
           live.active = i;
+          autoApplyFreeActions();
+          await maybeResolveRound();
           render();
         });
       }
@@ -194,8 +280,8 @@ export function mountFreeBetBJ(mountEl, store) {
   function render() {
     renderDealer();
     renderHands();
+
     if (state.roundComplete) {
-      // Show final state and no actions
       setActions([
         {
           label: "Press Deal to start next round",
@@ -214,6 +300,7 @@ export function mountFreeBetBJ(mountEl, store) {
     }
 
     const live = state.live;
+
     if (live.status !== "PLAYER_TURN") {
       setActions([]);
       return;
@@ -222,20 +309,18 @@ export function mountFreeBetBJ(mountEl, store) {
     const h = getActiveHand(live);
     const t = handTotals(h.cards);
 
-    // If active hand already finished, UI should jump (engine does this, but keep safe)
     if (h.finished) {
       setActions([]);
       return;
     }
 
-    // Build actions
     const btns = [
       {
         label: "Hit",
         onClick: async () => {
           try {
             hit(live);
-            // if engine advanced to dealer turn automatically, resolve it
+            autoApplyFreeActions();
             await maybeResolveRound();
             render();
           } catch (e) {
@@ -248,6 +333,7 @@ export function mountFreeBetBJ(mountEl, store) {
         onClick: async () => {
           try {
             stand(live);
+            autoApplyFreeActions();
             await maybeResolveRound();
             render();
           } catch (e) {
@@ -262,20 +348,7 @@ export function mountFreeBetBJ(mountEl, store) {
         onClick: async () => {
           try {
             await doublePaid(store, state.roundId, live);
-            await maybeResolveRound();
-            render();
-          } catch (e) {
-            alert(e.message);
-          }
-        },
-      },
-      {
-        label: "Double (FREE)",
-        kind: "ok",
-        disabled: !canDoubleFree(live),
-        onClick: async () => {
-          try {
-            doubleFree(live);
+            autoApplyFreeActions();
             await maybeResolveRound();
             render();
           } catch (e) {
@@ -289,18 +362,8 @@ export function mountFreeBetBJ(mountEl, store) {
         onClick: async () => {
           try {
             await splitPaid(store, state.roundId, live);
-            render();
-          } catch (e) {
-            alert(e.message);
-          }
-        },
-      },
-      {
-        label: "Split (FREE)",
-        disabled: !canSplitFree(live),
-        onClick: async () => {
-          try {
-            splitFree(live);
+            autoApplyFreeActions();
+            await maybeResolveRound();
             render();
           } catch (e) {
             alert(e.message);
@@ -309,49 +372,26 @@ export function mountFreeBetBJ(mountEl, store) {
       },
     ];
 
-    // Nice hint text
     el.result.textContent = "Your move";
     el.detail.textContent = t.isBlackjack
       ? "Blackjack checking..."
-      : "Play the active hand.";
+      : "Free splits/doubles will trigger automatically when available.";
+
     setActions(btns);
-
-    // Auto-finish if player blackjack on initial 2 cards (per hand)
-    // Auto-finish if player blackjack on initial 2 cards (per hand)
-    if (t.isBlackjack && h.cards.length === 2) {
-      // mark this hand finished
-      h.finished = true;
-      h.outcome = "BJ";
-
-      // advance like stand(), but without calling stand()
-      const next = live.hands.findIndex((hh) => !hh.finished);
-      if (next >= 0) {
-        live.active = next;
-      } else {
-        live.status = "DEALER_TURN";
-      }
-
-      // resolve if dealer turn
-      Promise.resolve()
-        .then(() => maybeResolveRound())
-        .then(() => render())
-        .catch((e) => alert(e.message));
-    }
   }
 
   async function maybeResolveRound() {
     const live = state.live;
     if (!live) return;
+
     if (live.status === "DEALER_TURN") {
       dealerPlay(live);
-      // reveal dealer
       renderDealer();
 
       const out = await settleFreeBetBJ(store, state.roundId, live);
       el.result.textContent = out.title;
       el.detail.textContent = out.detail;
 
-      // Keep the board up for review
       setActions([
         {
           label: "Round Complete — Press Deal for Next Hand",
@@ -361,11 +401,7 @@ export function mountFreeBetBJ(mountEl, store) {
       ]);
 
       state.roundComplete = true;
-
-      // We can clear the roundId (ledger is closed), but keep live for display
       state.roundId = null;
-
-      // ensure dealer is shown
       live.status = "DONE";
 
       await store.uiRefresh?.();
@@ -424,7 +460,6 @@ export function mountFreeBetBJ(mountEl, store) {
       const payouts = state.payouts || (await loadFreeBetPayouts(store));
       state.payouts = payouts;
 
-      // If a round just completed, we are starting fresh now
       state.roundComplete = false;
       el.result.textContent = "—";
       el.detail.textContent = "—";
@@ -434,8 +469,13 @@ export function mountFreeBetBJ(mountEl, store) {
         potGold,
         payouts,
       });
+
       state.roundId = roundId;
       state.live = live;
+
+      // AUTO-APPLY FREE ACTIONS IMMEDIATELY AFTER DEAL
+      autoApplyFreeActions();
+      await maybeResolveRound();
 
       el.result.textContent = "Dealt";
       el.detail.textContent = "Play your hand(s).";
@@ -447,6 +487,5 @@ export function mountFreeBetBJ(mountEl, store) {
     }
   });
 
-  // init
   loadSettingsIntoUI().then(() => render());
 }
