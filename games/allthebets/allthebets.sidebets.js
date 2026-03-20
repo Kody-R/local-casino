@@ -1,25 +1,30 @@
 import { SIDE_BET_PAYTABLES } from "./allthebets.payouts.js";
 
-const RED_SUITS = new Set(["hearts", "diamonds"]);
+const RED_SUITS = new Set(["H", "D"]);
+
+function bjRank(card) {
+  return card?.r === "T" ? "10" : card?.r;
+}
 
 function rankValue(rank) {
-  if (["J", "Q", "K"].includes(rank)) return 10;
-  if (rank === "A") return 11;
-  return Number(rank);
+  const r = rank === "T" ? "10" : rank;
+  if (["J", "Q", "K"].includes(r)) return 10;
+  if (r === "A") return 11;
+  return Number(r);
 }
 
 function cardColor(card) {
-  return RED_SUITS.has(card.suit) ? "red" : "black";
+  return RED_SUITS.has(card.s) ? "red" : "black";
 }
 
 function isSuited(cards) {
-  return cards.every(c => c.suit === cards[0].suit);
+  return cards.length > 0 && cards.every(c => c.s === cards[0].s);
 }
 
 function sortRanksForStraight(cards) {
-  const map = { A: 14, K: 13, Q: 12, J: 11 };
+  const map = { A: 14, K: 13, Q: 12, J: 11, T: 10 };
   const vals = cards
-    .map(c => (map[c.rank] ?? Number(c.rank)))
+    .map(c => map[c.r] ?? Number(c.r))
     .sort((a, b) => a - b);
 
   const lowAce = [...vals].map(v => (v === 14 ? 1 : v)).sort((a, b) => a - b);
@@ -34,7 +39,10 @@ function isStraight(cards) {
 
 function countRanks(cards) {
   const counts = new Map();
-  for (const c of cards) counts.set(c.rank, (counts.get(c.rank) || 0) + 1);
+  for (const c of cards) {
+    const r = bjRank(c);
+    counts.set(r, (counts.get(r) || 0) + 1);
+  }
   return counts;
 }
 
@@ -46,8 +54,8 @@ export function evalPerfectPairs(playerCards) {
   const pt = SIDE_BET_PAYTABLES.perfectPairs;
   if (playerCards.length < 2) return payoutResult("Perfect Pairs", false);
   const [a, b] = playerCards;
-  if (a.rank !== b.rank) return payoutResult("Perfect Pairs", false);
-  if (a.suit === b.suit) return payoutResult("Perfect Pairs", true, pt.perfectPair, "Perfect Pair");
+  if (bjRank(a) !== bjRank(b)) return payoutResult("Perfect Pairs", false);
+  if (a.s === b.s) return payoutResult("Perfect Pairs", true, pt.perfectPair, "Perfect Pair");
   if (cardColor(a) === cardColor(b)) return payoutResult("Perfect Pairs", true, pt.coloredPair, "Colored Pair");
   return payoutResult("Perfect Pairs", true, pt.mixedPair, "Mixed Pair");
 }
@@ -76,18 +84,18 @@ export function evalLuckyLadies(playerCards, dealerCards) {
   const [a, b] = playerCards;
   if (!a || !b) return payoutResult("Lucky Ladies", false);
 
-  const total = rankValue(a.rank) + rankValue(b.rank);
+  const total = rankValue(bjRank(a)) + rankValue(bjRank(b));
   if (total !== 20) return payoutResult("Lucky Ladies", false);
 
-  const bothQH = a.rank === "Q" && b.rank === "Q" && a.suit === "hearts" && b.suit === "hearts";
+  const bothQH = bjRank(a) === "Q" && bjRank(b) === "Q" && a.s === "H" && b.s === "H";
   const dealerBJ = dealerCards?.length >= 2 && handValue(dealerCards) === 21 && dealerCards.length === 2;
 
   if (bothQH && dealerBJ) {
     return payoutResult("Lucky Ladies", true, pt.queenHeartsPairDealerBlackjack, "Q♥ + Q♥ with Dealer Blackjack");
   }
   if (bothQH) return payoutResult("Lucky Ladies", true, pt.queenHeartsPair, "Q♥ + Q♥");
-  if (a.rank === b.rank) return payoutResult("Lucky Ladies", true, pt.matched20, "Matched 20");
-  if (a.suit === b.suit) return payoutResult("Lucky Ladies", true, pt.suited20, "Suited 20");
+  if (bjRank(a) === bjRank(b)) return payoutResult("Lucky Ladies", true, pt.matched20, "Matched 20");
+  if (a.s === b.s) return payoutResult("Lucky Ladies", true, pt.suited20, "Suited 20");
   return payoutResult("Lucky Ladies", true, pt.any20, "Any 20");
 }
 
@@ -96,13 +104,14 @@ export function evalLuckyLucky(playerCards, dealerUpcard) {
   const cards = [...playerCards.slice(0, 2), dealerUpcard];
   if (cards.length !== 3) return payoutResult("Lucky Lucky", false);
 
-  const total = cards.reduce((s, c) => s + Math.min(rankValue(c.rank), 10), 0);
+  const total = cards.reduce((sum, c) => sum + Math.min(rankValue(bjRank(c)), 10), 0);
   const suited = isSuited(cards);
-  const ranks = cards.map(c => c.rank).sort();
-  const nums = cards.map(c => ({ ...c, n: Math.min(rankValue(c.rank), 10) })).sort((a, b) => a.n - b.n);
+  const nums = cards
+    .map(c => ({ ...c, n: Math.min(rankValue(bjRank(c)), 10) }))
+    .sort((a, b) => a.n - b.n);
 
   const is678 = nums[0].n === 6 && nums[1].n === 7 && nums[2].n === 8;
-  const is777 = cards.every(c => c.rank === "7");
+  const is777 = cards.every(c => bjRank(c) === "7");
 
   if (is777 && suited) return payoutResult("Lucky Lucky", true, pt.suited777, "Suited 777");
   if (is777) return payoutResult("Lucky Lucky", true, pt.triple7, "777");
@@ -118,12 +127,14 @@ export function evalLuckyLucky(playerCards, dealerUpcard) {
 
 export function evalOverUnder13(playerCards, side = "over") {
   const pt = SIDE_BET_PAYTABLES.overUnder13;
-  const total = playerCards.slice(0, 2).reduce((s, c) => s + Math.min(rankValue(c.rank), 10), 0);
+  const total = playerCards.slice(0, 2).reduce((s, c) => s + Math.min(rankValue(bjRank(c)), 10), 0);
+
   if (total === 13) {
     if (pt.exactly13Mode === "push") return payoutResult(side === "over" ? "Over 13" : "Under 13", true, 0, "Push 13");
     if (pt.exactly13Mode === "win") return payoutResult(side === "over" ? "Over 13" : "Under 13", true, pt.exactly13 || 1, "Exact 13");
     return payoutResult(side === "over" ? "Over 13" : "Under 13", false);
   }
+
   if (side === "over" && total > 13) return payoutResult("Over 13", true, pt.over, `Total ${total}`);
   if (side === "under" && total < 13) return payoutResult("Under 13", true, pt.under, `Total ${total}`);
   return payoutResult(side === "over" ? "Over 13" : "Under 13", false);
@@ -131,38 +142,65 @@ export function evalOverUnder13(playerCards, side = "over") {
 
 export function evalMatchDealer(playerCards, dealerUpcard) {
   const pt = SIDE_BET_PAYTABLES.matchDealer;
-  const matches = playerCards.slice(0, 2).filter(c => c.rank === dealerUpcard.rank);
+  const dealerRank = bjRank(dealerUpcard);
+
+  const matches = playerCards.slice(0, 2).filter(c => bjRank(c) === dealerRank);
   if (!matches.length) return payoutResult("Match the Dealer", false);
 
-  const suitedMatches = matches.filter(c => c.suit === dealerUpcard.suit).length;
-  if (suitedMatches > 0) return payoutResult("Match the Dealer", true, pt.suited * suitedMatches, suitedMatches === 2 ? "Two Suited Matches" : "Suited Match");
-  return payoutResult("Match the Dealer", true, pt.unsuited * matches.length, matches.length === 2 ? "Two Matches" : "Match");
+  const suitedMatches = matches.filter(c => c.s === dealerUpcard.s).length;
+
+  if (suitedMatches > 0) {
+    return payoutResult(
+      "Match the Dealer",
+      true,
+      pt.suited * suitedMatches,
+      suitedMatches === 2 ? "Two Suited Matches" : "Suited Match"
+    );
+  }
+
+  return payoutResult(
+    "Match the Dealer",
+    true,
+    pt.unsuited * matches.length,
+    matches.length === 2 ? "Two Matches" : "Match"
+  );
 }
 
 export function evalRoyalMatch(playerCards) {
   const pt = SIDE_BET_PAYTABLES.royalMatch;
   const [a, b] = playerCards;
-  if (!a || !b || a.suit !== b.suit) return payoutResult("Royal Match", false);
-  const royal = new Set([a.rank, b.rank]);
-  if (royal.has("K") && royal.has("Q")) return payoutResult("Royal Match", true, pt.kingQueenSuited, "Suited KQ");
+
+  if (!a || !b || a.s !== b.s) return payoutResult("Royal Match", false);
+
+  const royal = new Set([bjRank(a), bjRank(b)]);
+  if (royal.has("K") && royal.has("Q")) {
+    return payoutResult("Royal Match", true, pt.kingQueenSuited, "Suited KQ");
+  }
+
   return payoutResult("Royal Match", true, pt.suited, "Suited Cards");
 }
 
 export function evalBlazing7s(playerCards) {
   const pt = SIDE_BET_PAYTABLES.blazing7s;
   const cards = playerCards;
-  const sevens = cards.filter(c => c.rank === "7");
+  const sevens = cards.filter(c => bjRank(c) === "7");
+
   if (sevens.length === 0) return payoutResult("Blazing 7s", false);
   if (sevens.length === 1) return payoutResult("Blazing 7s", true, pt.single7, "Single 7");
+
   if (sevens.length === 2) {
-    if (sevens[0].suit === sevens[1].suit) return payoutResult("Blazing 7s", true, pt.suitedTwo7s, "Suited 77");
+    if (sevens[0].s === sevens[1].s) {
+      return payoutResult("Blazing 7s", true, pt.suitedTwo7s, "Suited 77");
+    }
     return payoutResult("Blazing 7s", true, pt.two7s, "77");
   }
+
   if (sevens.length >= 3) {
-    const sameSuit = sevens.every(c => c.suit === sevens[0].suit);
+    const sameSuit = sevens.every(c => c.s === sevens[0].s);
     if (sameSuit) return payoutResult("Blazing 7s", true, pt.suitedThree7s, "Suited 777");
     return payoutResult("Blazing 7s", true, pt.three7s, "777");
   }
+
   return payoutResult("Blazing 7s", false);
 }
 
@@ -181,20 +219,24 @@ export function evalBustIt(dealerCards) {
 export function handValue(cards) {
   let total = 0;
   let aces = 0;
+
   for (const c of cards) {
-    if (c.rank === "A") {
+    const r = bjRank(c);
+    if (r === "A") {
       total += 11;
       aces += 1;
-    } else if (["K", "Q", "J"].includes(c.rank)) {
+    } else if (["K", "Q", "J", "10"].includes(r)) {
       total += 10;
     } else {
-      total += Number(c.rank);
+      total += Number(r);
     }
   }
+
   while (total > 21 && aces > 0) {
     total -= 10;
     aces -= 1;
   }
+
   return total;
 }
 
