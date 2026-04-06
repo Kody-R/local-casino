@@ -12,22 +12,70 @@ import {
   payoutsTemplateHTML,
 } from "./ilovesuits.payouts.js";
 
-const SUIT_SYMBOL = { S: "♠", H: "♥", D: "♦", C: "♣" };
-const VAL_TO_RANK = {
-  14: "A",
-  13: "K",
-  12: "Q",
-  11: "J",
-  10: "10",
-  9: "9",
-  8: "8",
-  7: "7",
-  6: "6",
-  5: "5",
-  4: "4",
-  3: "3",
-  2: "2",
+const SUIT_DISPLAY_ORDER = ["S", "C", "H", "D"];
+// This matches your example after the largest suit group:
+// Spades first, then Clubs, Hearts, Diamonds for ties.
+
+const RANK_SORT_VALUE = {
+  A: 14,
+  K: 13,
+  Q: 12,
+  J: 11,
+  T: 10,
+  9: 9,
+  8: 8,
+  7: 7,
+  6: 6,
+  5: 5,
+  4: 4,
+  3: 3,
+  2: 2,
 };
+
+function sortCardsWithIndexMap(cards) {
+  const suitCounts = cards.reduce((acc, c) => {
+    acc[c.s] = (acc[c.s] || 0) + 1;
+    return acc;
+  }, {});
+
+  const suitPriority = Object.fromEntries(
+    SUIT_DISPLAY_ORDER.map((s, i) => [s, i]),
+  );
+
+  const withIdx = cards.map((c, i) => ({ ...c, _idx: i }));
+
+  const sorted = withIdx.sort((a, b) => {
+    const countDiff = (suitCounts[b.s] || 0) - (suitCounts[a.s] || 0);
+    if (countDiff !== 0) return countDiff;
+
+    const suitDiff = (suitPriority[a.s] ?? 999) - (suitPriority[b.s] ?? 999);
+    if (suitDiff !== 0) return suitDiff;
+
+    return (RANK_SORT_VALUE[b.r] || 0) - (RANK_SORT_VALUE[a.r] || 0);
+  });
+
+  const indexMap = {};
+  sorted.forEach((card, newIdx) => {
+    indexMap[card._idx] = newIdx;
+  });
+
+  return {
+    sortedCards: sorted.map(({ _idx, ...card }) => card),
+    indexMap,
+  };
+}
+
+function remapHighlight(originalIdxSet, indexMap) {
+  const remapped = new Set();
+  for (const oldIdx of originalIdxSet) {
+    if (indexMap[oldIdx] !== undefined) {
+      remapped.add(indexMap[oldIdx]);
+    }
+  }
+  return remapped;
+}
+
+const SUIT_SYMBOL = { S: "♠", H: "♥", D: "♦", C: "♣" };
 
 function formatFlushText(cards7, flushInfo) {
   if (!flushInfo || flushInfo.len === 0 || !flushInfo.suit) return "—";
@@ -156,12 +204,17 @@ export function mountILoveSuits(mountEl, store) {
       state.roundId = roundId;
       state.live = live;
 
-      const hiP = new Set(live.pFlush.idxSorted); // highlight all suited cards
-      renderCards(el.p, live.player, false, {
+      const { sortedCards: sortedPlayer, indexMap: pIndexMap } =
+        sortCardsWithIndexMap(live.player);
+      const { sortedCards: sortedDealer } = sortCardsWithIndexMap(live.dealer);
+
+      const hiP = remapHighlight(new Set(live.pFlush.idxSorted), pIndexMap);
+
+      renderCards(el.p, sortedPlayer, false, {
         highlightIdx: hiP,
         dimOthers: true,
       });
-      renderCards(el.d, live.dealer, true); // hide dealer until finish
+      renderCards(el.d, sortedDealer, true);
 
       const allowed = allowedPlayMultipliers(live.pFlush.len);
 
@@ -198,8 +251,12 @@ export function mountILoveSuits(mountEl, store) {
 
   async function finishFold() {
     const out = await foldILS(store, state.roundId, state.live);
-    const hiD = new Set(state.live.dFlush.idxSorted);
-    renderCards(el.d, state.live.dealer, false, {
+    const { sortedCards: sortedDealer, indexMap: dIndexMap } =
+      sortCardsWithIndexMap(state.live.dealer);
+
+    const hiD = remapHighlight(new Set(state.live.dFlush.idxSorted), dIndexMap);
+
+    renderCards(el.d, sortedDealer, false, {
       highlightIdx: hiD,
       dimOthers: true,
     });
@@ -219,8 +276,15 @@ export function mountILoveSuits(mountEl, store) {
   async function finishPlay(mult) {
     try {
       const out = await playILS(store, state.roundId, state.live, mult);
-      const hiD = new Set(state.live.dFlush.idxSorted);
-      renderCards(el.d, state.live.dealer, false, {
+      const { sortedCards: sortedDealer, indexMap: dIndexMap } =
+        sortCardsWithIndexMap(state.live.dealer);
+
+      const hiD = remapHighlight(
+        new Set(state.live.dFlush.idxSorted),
+        dIndexMap,
+      );
+
+      renderCards(el.d, sortedDealer, false, {
         highlightIdx: hiD,
         dimOthers: true,
       });
