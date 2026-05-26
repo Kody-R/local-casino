@@ -72,6 +72,9 @@ async function loadGame(gameKey) {
   }  else if (gameKey === "allthebets") {
   const mod = await import("./games/allthebets/allthebets.ui.js");
   mod.mountBlackjack(els.gameMount, store);
+  } else if (gameKey === "huffnmorepuff") {
+  const mod = await import("./games/huffnmorepuff/huffnmorepuff.ui.js");
+  mod.mountHuffMorePuff(els.gameMount, store);
   } else {
     els.gameMount.textContent = "Unknown game.";
   }

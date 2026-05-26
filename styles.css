@@ -2620,3 +2620,237 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================
+   Huff More Puff - standalone slot
+   ============================ */
+.hmpWrap {
+  display: grid;
+  gap: 14px;
+  --hmpAccent: #f97316;
+  --hmpAccent2: rgba(249, 115, 22, 0.32);
+}
+
+.hmpHero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(249, 115, 22, 0.26), transparent 36%),
+    radial-gradient(circle at 90% 0%, rgba(220, 38, 38, 0.22), transparent 32%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.hmpHero h2 {
+  margin: 0;
+  font-size: 34px;
+  letter-spacing: 0.3px;
+}
+
+.hmpEyebrow {
+  color: #fed7aa;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 12px;
+}
+
+.hmpBank,
+.hmpFree {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.hmpControls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hmpControls label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hmpControls select {
+  min-width: 110px;
+}
+
+.hmpMeters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.hmpMeters > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.hmpMeters strong {
+  font-size: 22px;
+}
+
+.hmpStage {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(70px, 1fr));
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(249, 115, 22, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(0, 0, 0, 0.12)),
+    rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.hmpCell {
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  padding: 8px 5px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.055);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.hmpCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 35% 12%, rgba(255, 255, 255, 0.18), transparent 36%);
+  pointer-events: none;
+}
+
+.hmpIcon {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 1000;
+  z-index: 1;
+}
+
+.hmpLabel {
+  font-size: 11px;
+  color: rgba(233, 236, 245, 0.76);
+  text-align: center;
+  z-index: 1;
+}
+
+.hmpCell[data-sym="A"] .hmpIcon,
+.hmpCell[data-sym="K"] .hmpIcon,
+.hmpCell[data-sym="Q"] .hmpIcon {
+  font-size: 26px;
+  color: #fed7aa;
+}
+
+.hmpCell.hmpWolf {
+  border-color: rgba(248, 113, 113, 0.44);
+  background: rgba(127, 29, 29, 0.22);
+}
+
+.hmpCell.hmpWin {
+  transform: translateY(-2px);
+  border-color: rgba(52, 211, 153, 0.7);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16), 0 0 20px rgba(52, 211, 153, 0.26);
+}
+
+.hmpCell.hmpFeature {
+  border-color: rgba(249, 115, 22, 0.85);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18), 0 0 24px rgba(249, 115, 22, 0.36);
+  animation: hmpPuff 0.9s ease-out 1;
+}
+
+@keyframes hmpPuff {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.06) rotate(-1deg); }
+  70% { transform: scale(0.98) rotate(1deg); }
+  100% { transform: scale(1); }
+}
+
+.hmpPanel {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.hmpPanelHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.hmpWinList {
+  display: grid;
+  gap: 8px;
+}
+
+.hmpWinRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.hmpFeatureRow {
+  border-color: rgba(249, 115, 22, 0.28);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.hmpRules {
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .hmpHero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .hmpHero h2 {
+    font-size: 26px;
+  }
+  .hmpMeters {
+    grid-template-columns: 1fr;
+  }
+  .hmpStage {
+    grid-template-columns: repeat(5, minmax(48px, 1fr));
+    gap: 6px;
+    padding: 8px;
+  }
+  .hmpCell {
+    min-height: 62px;
+    border-radius: 12px;
+  }
+  .hmpIcon {
+    font-size: 24px;
+  }
+  .hmpLabel {
+    display: none;
+  }
+}
