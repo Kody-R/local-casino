@@ -1,12 +1,13 @@
-// games/huffnmorepuff/huffnmorepuff.ui.js
-// Standalone Huff 'N More Puff style slot module.
-// Separate from games/slots/* and wired through main.js as huffnmorepuff.
+// games/huffmorepuff/huffmorepuff.ui.js
+// Standalone Huff More Puff style slot module.
+// Separate from games/slots/* and wired through main.js as huffmorepuff.
 
 const ROWS = 3;
 const COLS = 5;
 const CELLS = ROWS * COLS;
 const MAX_HOUSE_TIER = 3; // 0 empty, 1 straw, 2 stick, 3 mansion
 const FEATURE_FREE_SPINS = 6;
+const HARD_HAT_TRIGGER = 3;
 
 // Bet values are stored as whole chips/cents so .20 = 20 and $100 = 10000.
 const BET_OPTIONS = [20, 40, 60, 80, 100, 200, 400, 500, 1000, 2000, 5000, 10000];
@@ -26,19 +27,52 @@ const SYMBOLS = {
 };
 
 const BASE_WEIGHTS = [
-  { WOLF: 2, HAT: 2.1, SAW: 1.0, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 13, K: 13, Q: 13 },
-  { WOLF: 2, HAT: 2.3, SAW: 1.1, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 13, K: 13, Q: 13 },
-  { WOLF: 2.2, HAT: 2.5, SAW: 1.25, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 13, K: 13, Q: 13 },
-  { WOLF: 2, HAT: 2.3, SAW: 1.1, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 13, K: 13, Q: 13 },
-  { WOLF: 1.8, HAT: 2.1, SAW: 1.0, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 13, K: 13, Q: 13 },
+  { WOLF: 2, HAT: 4.2, SAW: 1.0, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 12, K: 12, Q: 12 },
+  { WOLF: 2, HAT: 4.5, SAW: 1.1, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 12, K: 12, Q: 12 },
+  { WOLF: 2.2, HAT: 5.0, SAW: 1.25, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 12, K: 12, Q: 12 },
+  { WOLF: 2, HAT: 4.5, SAW: 1.1, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 12, K: 12, Q: 12 },
+  { WOLF: 1.8, HAT: 4.2, SAW: 1.0, TAPE: 7, HARDHAT: 8, HAMMER: 9, WOOD: 10, BRICK: 10, A: 12, K: 12, Q: 12 },
 ];
 
 const FREE_WEIGHTS = BASE_WEIGHTS.map((w, i) => ({
   ...w,
-  HAT: w.HAT + 1.8,
+  HAT: w.HAT + 2.8,
   SAW: w.SAW + (i === 2 ? 1.0 : 0.45),
   WOLF: w.WOLF + 0.35,
 }));
+
+function betBoostFactor(bet) {
+  const min = BET_OPTIONS[0];
+  const max = BET_OPTIONS[BET_OPTIONS.length - 1];
+  const safeBet = Math.max(min, Math.min(max, Number(bet) || min));
+  // Log curve: low bets stay close to base; high bets get a meaningful but capped feature boost.
+  const t = Math.log(safeBet / min) / Math.log(max / min);
+  return Math.max(0, Math.min(1, t));
+}
+
+function featureWeightsForBet(baseWeights, bet, freeMode = false) {
+  const boost = betBoostFactor(bet);
+  return baseWeights.map((w, reelIndex) => {
+    const centerReel = reelIndex === 2 ? 1.12 : 1;
+    return {
+      ...w,
+      // Higher bets raise the chance of the two feature drivers.
+      HAT: w.HAT * (1 + boost * (freeMode ? 1.25 : 1.10) * centerReel),
+      SAW: w.SAW * (1 + boost * (freeMode ? 1.35 : 1.15) * centerReel),
+      // A small wild lift keeps high-denom spins feeling more active without making them auto-wins.
+      WOLF: w.WOLF * (1 + boost * 0.35),
+      // Slightly reduce low symbols at the top end so total feature frequency actually moves.
+      A: w.A * (1 - boost * 0.08),
+      K: w.K * (1 - boost * 0.08),
+      Q: w.Q * (1 - boost * 0.08),
+    };
+  });
+}
+
+function jackpotWheelChance(bet) {
+  const boost = betBoostFactor(bet);
+  return 0.22 + boost * 0.18; // 22% at min bet, 40% at max bet
+}
 
 const JACKPOTS = {
   MINI: 20,
@@ -70,8 +104,9 @@ function pick(weightMap) {
   return entries[0][0];
 }
 
-function makeGrid(freeMode = false) {
-  const weights = freeMode ? FREE_WEIGHTS : BASE_WEIGHTS;
+function makeGrid(freeMode = false, bet = BET_OPTIONS[0]) {
+  const base = freeMode ? FREE_WEIGHTS : BASE_WEIGHTS;
+  const weights = featureWeightsForBet(base, bet, freeMode);
   const grid = Array.from({ length: ROWS }, () => Array(COLS).fill("A"));
   for (let c = 0; c < COLS; c++) {
     for (let r = 0; r < ROWS; r++) grid[r][c] = pick(weights[c]);
@@ -183,20 +218,29 @@ function jackpotAward(name, bet) {
   return credits(bet * JACKPOTS[name]);
 }
 
-function randomJackpotName() {
+function randomJackpotName(bet) {
+  const boost = betBoostFactor(bet);
   const r = Math.random();
-  if (r < 0.62) return "MINI";
-  if (r < 0.88) return "MINOR";
-  if (r < 0.985) return "MAJOR";
+
+  // Higher bets do not guarantee a jackpot tier, but they move probability toward Major/Grand.
+  const miniCut = 0.62 - boost * 0.20;
+  const minorCut = 0.88 - boost * 0.10;
+  const majorCut = 0.985 - boost * 0.035;
+
+  if (r < miniCut) return "MINI";
+  if (r < minorCut) return "MINOR";
+  if (r < majorCut) return "MAJOR";
   return "GRAND";
 }
 
 function spinBuzzsawWheel(sawCount, bet) {
   const r = Math.random();
-  if (r < 0.22) return { type: "JACKPOT", label: randomJackpotName() };
-  if (r < 0.44) return { type: "MANSION", label: "Mansion Bonus" };
-  if (r < 0.66) return { type: "BUZZSAW", label: "Buzzsaw Sweep" };
-  if (r < 0.84) return { type: "MEGA_HAT", label: "Mega Hat Bonus" };
+  const jackpotCut = jackpotWheelChance(bet);
+  const remaining = 1 - jackpotCut;
+  if (r < jackpotCut) return { type: "JACKPOT", label: randomJackpotName(bet) };
+  if (r < jackpotCut + remaining * 0.28) return { type: "MANSION", label: "Mansion Bonus" };
+  if (r < jackpotCut + remaining * 0.56) return { type: "BUZZSAW", label: "Buzzsaw Sweep" };
+  if (r < jackpotCut + remaining * 0.78) return { type: "MEGA_HAT", label: "Mega Hat Bonus" };
   return { type: "CREDIT", label: `${20 * sawCount}x Credit Award`, award: credits(bet * 20 * sawCount) };
 }
 
@@ -259,12 +303,12 @@ function applyFreeSpinConstruction(feature, grid, bet) {
 }
 
 function evaluatePaidSpin(bet) {
-  const grid = makeGrid(false);
+  const grid = makeGrid(false, bet);
   const ways = waysWin(grid, bet);
   const hatCount = countSymbol(grid, "HAT");
   const sawCount = countSymbol(grid, "SAW");
   const sawPositions = symbolPositions(grid, "SAW");
-  const featureTrigger = hatCount >= 6;
+  const featureTrigger = hatCount >= HARD_HAT_TRIGGER;
   const wheelTrigger = sawCount >= 3;
 
   return {
@@ -280,7 +324,7 @@ function evaluatePaidSpin(bet) {
 }
 
 function evaluateFreeSpin(bet, feature) {
-  const grid = makeGrid(true);
+  const grid = makeGrid(true, bet);
   const ways = waysWin(grid, bet);
   const sawCount = countSymbol(grid, "SAW");
   const sawPositions = symbolPositions(grid, "SAW");
@@ -364,7 +408,7 @@ function renderWins(el, result, feature = null) {
     rows.push(`<div class="hmpWinRow"><span>${meta.icon} ${meta.label} — ${w.ways} ways × ${w.reels} reels</span><b>${money(w.win)}</b></div>`);
   }
 
-  if (result.featureTrigger) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 6+ Hard Hats triggered Free Games</span><b>6 spins</b></div>`);
+  if (result.featureTrigger) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 ${HARD_HAT_TRIGGER}+ Hard Hats triggered Free Games</span><b>6 spins</b></div>`);
   if (result.wheelTrigger) rows.push(`<div class="hmpWinRow hmpSawRow"><span>🪚 3+ Buzzsaws triggered Bonus Wheel</span><b>Ready</b></div>`);
   if (result.construction?.hatCount) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 Hats built houses — ${result.construction.mansions} mansion(s)</span><b>${money(result.construction.award)}</b></div>`);
   if (result.wheel) rows.push(`<div class="hmpWinRow hmpSawRow"><span>🪚 ${result.wheel.label}${result.wheel.note ? ` — ${result.wheel.note}` : ""}</span><b>${money(result.wheelAward)}</b></div>`);
@@ -382,7 +426,7 @@ function renderMeters(el, result, feature) {
 
 async function animateSpin(el, finalGrid, freeMode = false) {
   for (let i = 0; i < 10; i++) {
-    renderGrid(el.stage, makeGrid(freeMode));
+    renderGrid(el.stage, makeGrid(freeMode, Number(el.bet?.value || BET_OPTIONS[0])));
     await sleep(45 + i * 16);
   }
   renderGrid(el.stage, finalGrid);
@@ -473,9 +517,10 @@ export function mountHuffMorePuff(mountEl, store) {
         <div class="help hmpRules">
           <b>Bet Range:</b> ${money(BET_OPTIONS[0])} to ${money(BET_OPTIONS[BET_OPTIONS.length - 1])} per spin.<br>
           <b>243 Ways:</b> matching paying symbols win left-to-right across adjacent reels. Wolf is wild.<br>
-          <b>Hard Hat Free Games:</b> 6+ Hard Hats trigger ${FEATURE_FREE_SPINS} free games. Hats build Straw, then Stick, then Mansion. Hats on full Mansion spaces help unfinished spaces instead.<br>
+          <b>Hard Hat Free Games:</b> ${HARD_HAT_TRIGGER}+ Hard Hats trigger ${FEATURE_FREE_SPINS} free games. Hats build Straw, then Stick, then Mansion. Hats on full Mansion spaces help unfinished spaces instead.<br>
           <b>Buzzsaw Wheel:</b> 3+ Buzzsaws trigger a wheel: credits, Mini/Minor/Major/Grand jackpots, Mansion Bonus, Buzzsaw Sweep, or Mega Hat Bonus.<br>
-          <b>Jackpots:</b> scale with bet. Grand pays 5,000× bet.
+          <b>Bet Scaling:</b> higher bet sizes increase Hard Hat, Buzzsaw, Buzzsaw Wheel, and higher jackpot-tier chances.
+          <br><b>Jackpots:</b> scale with bet. Grand pays 5,000× bet.
         </div>
       </details>
     </div>
@@ -513,7 +558,7 @@ export function mountHuffMorePuff(mountEl, store) {
     el.free.textContent = feature.spinsLeft > 0 ? `Free Games: ${feature.spinsLeft} @ ${money(featureBet)}` : "Free Games: 0";
   }
 
-  renderGrid(el.stage, makeGrid(false));
+  renderGrid(el.stage, makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0])));
   renderFeatureBoard(el, feature);
   renderJackpots();
   refreshFreeLabel();
@@ -596,7 +641,7 @@ export function mountHuffMorePuff(mountEl, store) {
         feature.active = true;
         feature.spinsLeft = FEATURE_FREE_SPINS;
         featureBet = bet;
-        // Initial six hats seed the construction board using the actual hat positions first.
+        // Triggering hats seed the construction board using the actual hat positions first.
         for (const pos of symbolPositions(result.grid, "HAT")) buildWithHat(feature, pos);
       } else if (!paidSpin) {
         feature.spinsLeft = Math.max(0, feature.spinsLeft - 1);
