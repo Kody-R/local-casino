@@ -228,7 +228,8 @@ function makeGrid(freeMode = false, bet = BET_OPTIONS[0]) {
 }
 
 function posToRc(pos) {
-  return [Math.floor(pos / COLS), pos % COLS];
+  const lp = localPos(pos);
+  return [Math.floor(lp / COLS), lp % COLS];
 }
 
 function rcToPos(r, c) {
@@ -288,10 +289,28 @@ function waysWin(grid, bet) {
   return { wins, total };
 }
 
+function featureGridCount() {
+  return Math.max(1, currentVariant().powerGrids || 1);
+}
+
+function featureCellCount() {
+  return CELLS * featureGridCount();
+}
+
+function localPos(pos) {
+  return ((pos % CELLS) + CELLS) % CELLS;
+}
+
+function gridOffset(gridIndex) {
+  return Math.max(0, gridIndex | 0) * CELLS;
+}
+
 function createFeatureState() {
+  const gridCount = featureGridCount();
   return {
     spinsLeft: 0,
-    board: Array(CELLS).fill(0),
+    gridCount,
+    board: Array(CELLS * gridCount).fill(0),
     totalWin: 0,
     active: false,
     resolvedPrizes: null,
@@ -502,13 +521,15 @@ function applyMansionBonus(feature, sawPositions, bet) {
 
 function applyBuzzsawSweep(feature, sawPositions, bet) {
   const affected = new Set();
-  const rows = sawPositions.map((p) => posToRc(p)[0]);
-  const alignedRow = rows.length >= 3 && rows.every((r) => r === rows[0]);
+  const normalized = (sawPositions || []).map((p) => Math.max(0, Math.min(feature.board.length - 1, p | 0)));
+  const rowKeys = normalized.map((p) => `${Math.floor(p / CELLS)}:${posToRc(p)[0]}`);
+  const alignedRow = rowKeys.length >= 3 && rowKeys.every((r) => r === rowKeys[0]);
 
-  for (const pos of sawPositions) {
+  for (const pos of normalized) {
+    const base = Math.floor(pos / CELLS) * CELLS;
     const [r, c] = posToRc(pos);
-    for (let cc = 0; cc < COLS; cc++) affected.add(rcToPos(r, cc));
-    for (let rr = 0; rr < ROWS; rr++) affected.add(rcToPos(rr, c));
+    for (let cc = 0; cc < COLS; cc++) affected.add(base + rcToPos(r, cc));
+    for (let rr = 0; rr < ROWS; rr++) affected.add(base + rcToPos(rr, c));
   }
 
   for (const pos of affected) {
@@ -520,20 +541,22 @@ function applyBuzzsawSweep(feature, sawPositions, bet) {
   return {
     affected: [...affected],
     award: credits(bet * Math.max(1, mansions) * (alignedRow ? 12 : 6)),
-    note: alignedRow ? "Three buzzsaws aligned in a row and upgraded structures harder." : "Buzzsaws swept paths into house upgrades.",
+    note: alignedRow ? "Three buzzsaws aligned on one Power grid row and upgraded structures harder." : "Buzzsaws swept paths into house upgrades.",
   };
 }
 
 function applyMegaHat(feature, bet) {
-  const cover = Math.min(CELLS, 6 + Math.floor(Math.random() * 10)); // 6..15 spaces
-  const positions = [...Array(CELLS).keys()].sort(() => Math.random() - 0.5).slice(0, cover);
+  const maxCover = Math.min(feature.board.length, featureGridCount() > 1 ? 24 : 15);
+  const cover = Math.min(maxCover, 6 + Math.floor(Math.random() * (maxCover - 5)));
+  const positions = [...Array(feature.board.length).keys()].sort(() => Math.random() - 0.5).slice(0, cover);
   for (const pos of positions) buildWithHat(feature, pos);
   const mansions = mansionPayoutCount(feature.board);
   return { affected: positions, award: credits(bet * Math.max(cover, mansions * 8)), note: `Mega Hat covered ${cover} reel spaces.` };
 }
 
-function applyFreeSpinConstruction(feature, grid, bet) {
-  const hatPositions = symbolPositions(grid, "HAT");
+function applyFreeSpinConstruction(feature, grid, bet, gridIndex = 0) {
+  const offset = gridOffset(gridIndex);
+  const hatPositions = symbolPositions(grid, "HAT").map((p) => p + offset);
   const builds = [];
   let overflowMansions = 0;
 
@@ -568,17 +591,11 @@ function evaluatePaidSpin(bet) {
     if (gridIndex === 0) ways.wins.push(...w.wins);
     hatCount += countSymbol(g, "HAT");
     sawCount += countSymbol(g, "SAW");
-    if (gridIndex === 0) {
-      sawPositions = symbolPositions(g, "SAW");
-      hatPositions = symbolPositions(g, "HAT");
-    } else {
-      hatPositions.push(...randomPositions(countSymbol(g, "HAT")));
-      sawPositions.push(...randomPositions(countSymbol(g, "SAW")));
-    }
-  });
 
-  sawPositions = sawPositions.slice(0, CELLS);
-  hatPositions = hatPositions.slice(0, CELLS);
+    const offset = gridOffset(gridIndex);
+    hatPositions.push(...symbolPositions(g, "HAT").map((p) => p + offset));
+    sawPositions.push(...symbolPositions(g, "SAW").map((p) => p + offset));
+  });
 
   const featureTrigger = hatCount >= (variant.hardHatTrigger ?? HARD_HAT_TRIGGER);
   const wheelTrigger = variant.enableBuzzsaw && (sawCount >= 3 || (variant.extraWheelFromHats && hatCount >= 3));
@@ -589,11 +606,29 @@ function evaluatePaidSpin(bet) {
 }
 
 function evaluateFreeSpin(bet, feature) {
-  const grid = makeGrid(true, bet);
-  const ways = waysWin(grid, bet);
-  const sawCount = countSymbol(grid, "SAW");
-  const sawPositions = symbolPositions(grid, "SAW");
-  const construction = applyFreeSpinConstruction(feature, grid, bet);
+  const gridCount = Math.max(1, currentVariant().powerGrids || 1);
+  const grids = Array.from({ length: gridCount }, () => makeGrid(true, bet));
+  const grid = grids[0];
+  const ways = { wins: [], total: 0 };
+  let sawCount = 0;
+  let sawPositions = [];
+  let construction = { builds: [], affected: [], award: 0, hatCount: 0, mansions: 0, overflowMansions: 0 };
+
+  grids.forEach((g, gridIndex) => {
+    const w = waysWin(g, bet);
+    ways.total += w.total;
+    if (gridIndex === 0) ways.wins.push(...w.wins);
+    sawCount += countSymbol(g, "SAW");
+    sawPositions.push(...symbolPositions(g, "SAW").map((p) => p + gridOffset(gridIndex)));
+
+    const built = applyFreeSpinConstruction(feature, g, bet, gridIndex);
+    construction.builds.push(...built.builds);
+    construction.affected.push(...built.affected);
+    construction.hatCount += built.hatCount;
+    construction.overflowMansions += built.overflowMansions;
+  });
+  construction.mansions = mansionPayoutCount(feature.board);
+
   let wheel = null;
   let wheelAward = 0;
   let wheelAffected = [];
@@ -636,13 +671,33 @@ function evaluateFreeSpin(bet, feature) {
   const totalWin = ways.total + construction.award + wheelAward;
   feature.totalWin += totalWin;
 
-  return { grid, ways, sawCount, sawPositions, construction, wheel, wheelAward, wheelAffected, totalWin };
+  return { grid, grids, gridCount, ways, sawCount, sawPositions, construction, wheel, wheelAward, wheelAffected, totalWin };
 }
 
 function renderGrid(stage, grid) {
   stage.style.setProperty("--hmp-cols", COLS);
   stage.style.setProperty("--hmp-rows", ROWS);
   stage.innerHTML = grid.map((row, r) => row.map((sym, c) => cellHtml(sym, r, c)).join("")).join("");
+}
+
+
+function renderAllGrids(stage, grids) {
+  const gridList = Array.isArray(grids) && grids.length ? grids : [makeGrid(false, Number(document.querySelector("#hmp_bet")?.value || BET_OPTIONS[0]))];
+  const multi = gridList.length > 1;
+  stage.classList.toggle("hmpStageMulti", multi);
+  stage.style.removeProperty("--hmp-cols");
+  stage.style.removeProperty("--hmp-rows");
+  if (!multi) {
+    renderGrid(stage, gridList[0]);
+    return;
+  }
+  stage.innerHTML = gridList.map((grid, idx) => `
+    <div class="hmpPowerGrid">
+      <div class="hmpPowerTitle">Grid ${idx + 1}</div>
+      <div class="hmpStage hmpMiniStage" style="--hmp-cols:${COLS};--hmp-rows:${ROWS}">
+        ${grid.map((row, r) => row.map((sym, c) => cellHtml(sym, r, c)).join("")).join("")}
+      </div>
+    </div>`).join("");
 }
 
 function cellHtml(sym, r, c) {
@@ -655,7 +710,9 @@ function cellHtml(sym, r, c) {
 
 function renderFeatureBoard(el, feature, highlight = []) {
   const hi = new Set(highlight);
-  el.board.innerHTML = feature.board.map((tier, pos) => {
+  const gridCount = Math.max(1, feature.gridCount || featureGridCount());
+
+  const buildCell = (tier, pos) => {
     const prize = feature.resolvedPrizes?.[pos] ?? null;
     const prizeText = prize ? (prize.type === "WORD" ? prize.label : money(prize.value)) : houseTierLabel(tier);
     return `
@@ -663,6 +720,19 @@ function renderFeatureBoard(el, feature, highlight = []) {
       <div>${tierIcon(tier)}</div>
       <small>${prizeText}</small>
     </div>`;
+  };
+
+  if (gridCount <= 1) {
+    el.board.classList.remove("hmpBuildPower4");
+    el.board.innerHTML = feature.board.map((tier, pos) => buildCell(tier, pos)).join("");
+    return;
+  }
+
+  el.board.classList.add("hmpBuildPower4");
+  el.board.innerHTML = Array.from({ length: gridCount }, (_, gridIndex) => {
+    const start = gridOffset(gridIndex);
+    const cells = feature.board.slice(start, start + CELLS).map((tier, local) => buildCell(tier, start + local)).join("");
+    return `<div class="hmpBuildGridPanel"><div class="hmpPowerTitle">Grid ${gridIndex + 1} Construction</div><div class="hmpBuildGrid hmpBuildMiniGrid">${cells}</div></div>`;
   }).join("");
 }
 
@@ -712,12 +782,14 @@ function renderMeters(el, result, feature) {
   el.mansions.textContent = String(mansionPayoutCount(feature.board));
 }
 
-async function animateSpin(el, finalGrid, freeMode = false) {
+async function animateSpin(el, resultOrGrid, freeMode = false) {
+  const finalGrids = Array.isArray(resultOrGrid?.grids) ? resultOrGrid.grids : [resultOrGrid];
+  const count = finalGrids.length || featureGridCount();
   for (let i = 0; i < 10; i++) {
-    renderGrid(el.stage, makeGrid(freeMode, Number(el.bet?.value || BET_OPTIONS[0])));
+    renderAllGrids(el.stage, Array.from({ length: count }, () => makeGrid(freeMode, Number(el.bet?.value || BET_OPTIONS[0]))));
     await sleep(45 + i * 16);
   }
-  renderGrid(el.stage, finalGrid);
+  renderAllGrids(el.stage, finalGrids);
 }
 
 async function safeRefreshBank(el, store) {
@@ -741,11 +813,11 @@ function ensureHmpStyles() {
     .hmpControls{display:flex;align-items:end;flex-wrap:wrap;gap:10px}.hmpControls label{display:grid;gap:5px;color:var(--muted,#aab3d3);font-size:12px}.hmpControls select{min-width:130px}
     .hmpJackpots{display:grid;grid-template-columns:repeat(4,minmax(105px,1fr));gap:8px}.hmpJackpots div{padding:9px 10px;border-radius:14px;border:1px solid rgba(250,204,21,.22);background:rgba(250,204,21,.08)}.hmpJackpots small{display:block;color:rgba(255,255,255,.7)}.hmpJackpots b{font-size:18px}
     .hmpMeters{display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:10px}.hmpMeters>div{display:grid;gap:4px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}.hmpMeters strong{font-size:22px}
-    .hmpGameGrid{display:grid;grid-template-columns:minmax(360px,640px) minmax(260px,1fr);gap:14px;align-items:start}.hmpStage{display:grid!important;grid-template-columns:repeat(var(--hmp-cols,5),minmax(68px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),92px)!important;gap:8px!important;padding:14px!important;border-radius:18px;border:1px solid rgba(249,115,22,.24);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.12)),rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+    .hmpGameGrid{display:grid;grid-template-columns:minmax(360px,640px) minmax(260px,1fr);gap:14px;align-items:start}.hmpStage{display:grid!important;grid-template-columns:repeat(var(--hmp-cols,5),minmax(68px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),92px)!important;gap:8px!important;padding:14px!important;border-radius:18px;border:1px solid rgba(249,115,22,.24);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.12)),rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}.hmpStage.hmpStageMulti{grid-template-columns:repeat(2,minmax(230px,1fr))!important;grid-template-rows:auto!important;align-items:start}.hmpPowerGrid{display:grid;gap:6px}.hmpPowerTitle{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#fed7aa;font-weight:900}.hmpMiniStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(42px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),58px)!important;padding:8px!important;gap:5px!important}.hmpMiniStage .hmpCell{border-radius:11px;padding:4px 2px}.hmpMiniStage .hmpIcon{font-size:22px}.hmpMiniStage .hmpLabel{display:none}
     .hmpCell{display:grid!important;place-items:center!important;align-content:center!important;gap:3px;padding:8px 5px;border-radius:16px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);position:relative;overflow:hidden;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}.hmpCell::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 12%,rgba(255,255,255,.18),transparent 36%);pointer-events:none}.hmpIcon{font-size:32px;line-height:1;font-weight:1000;z-index:1}.hmpLabel{font-size:11px;color:rgba(233,236,245,.76);text-align:center;z-index:1}.hmpCell[data-sym="A"] .hmpIcon,.hmpCell[data-sym="K"] .hmpIcon,.hmpCell[data-sym="Q"] .hmpIcon{font-size:28px;color:#fed7aa}.hmpWild{border-color:rgba(248,113,113,.52);background:rgba(127,29,29,.22)}.hmpHat{border-color:rgba(250,204,21,.55);background:rgba(250,204,21,.09)}.hmpSaw{border-color:rgba(96,165,250,.55);background:rgba(37,99,235,.12)}.hmpWin{transform:translateY(-2px);box-shadow:0 0 0 3px rgba(52,211,153,.16),0 0 20px rgba(52,211,153,.26)}
-    .hmpBuildPanel,.hmpPanel{border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);padding:12px}.hmpBuildPanel h3{margin:0 0 8px}.hmpBuildGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.hmpBuildCell{height:66px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);display:grid;place-items:center;align-content:center;font-weight:900}.hmpBuildCell small{font-size:10px;color:rgba(255,255,255,.65)}.hmpBuildCell.straw{background:rgba(217,119,6,.15);border-color:rgba(217,119,6,.4)}.hmpBuildCell.stick{background:rgba(120,53,15,.18);border-color:rgba(180,83,9,.5)}.hmpBuildCell.mansion{background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.55)}.hmpBuildCell.wordPrize{box-shadow:0 0 18px rgba(250,204,21,.35);border-color:rgba(250,204,21,.85)}.hmpBuildCell.creditPrize{box-shadow:0 0 14px rgba(52,211,153,.22);border-color:rgba(52,211,153,.55)}.hmpBuildCell.hit{animation:hmpBuildHit .9s ease-out 1}@keyframes hmpBuildHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
+    .hmpBuildPanel,.hmpPanel{border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);padding:12px}.hmpBuildPanel h3{margin:0 0 8px}.hmpBuildGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.hmpBuildPower4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.hmpBuildGridPanel{display:grid;gap:5px}.hmpBuildMiniGrid .hmpBuildCell{height:44px;border-radius:10px}.hmpBuildMiniGrid .hmpBuildCell small{font-size:9px}.hmpBuildCell{height:66px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);display:grid;place-items:center;align-content:center;font-weight:900}.hmpBuildCell small{font-size:10px;color:rgba(255,255,255,.65)}.hmpBuildCell.straw{background:rgba(217,119,6,.15);border-color:rgba(217,119,6,.4)}.hmpBuildCell.stick{background:rgba(120,53,15,.18);border-color:rgba(180,83,9,.5)}.hmpBuildCell.mansion{background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.55)}.hmpBuildCell.wordPrize{box-shadow:0 0 18px rgba(250,204,21,.35);border-color:rgba(250,204,21,.85)}.hmpBuildCell.creditPrize{box-shadow:0 0 14px rgba(52,211,153,.22);border-color:rgba(52,211,153,.55)}.hmpBuildCell.hit{animation:hmpBuildHit .9s ease-out 1}@keyframes hmpBuildHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
     .hmpPanelHead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}.hmpWinList{display:grid;gap:8px}.hmpWinRow{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}.hmpFeatureRow{border-color:rgba(249,115,22,.28);background:rgba(249,115,22,.1)}.hmpSawRow{border-color:rgba(96,165,250,.35);background:rgba(37,99,235,.12)}.hmpRules{line-height:1.7}
-    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(48px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
+    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.hmpStage.hmpStageMulti,.hmpBuildPower4{grid-template-columns:1fr!important}.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(48px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
 }
@@ -854,7 +926,7 @@ export function mountHuffMorePuff(mountEl, store) {
       <b>Hard Hat Free Games:</b> ${v.hardHatTrigger}+ Hard Hats trigger ${v.freeSpins} free games. During free games, Hard Hats only build or upgrade houses and do <b>not</b> retrigger more free games. Every Straw, Stick, and Mansion house pays at the end; Mansions are weighted toward Mini/Minor/Major/Grand word bonuses.<br>
       ${v.enableBuzzsaw ? `<b>Buzzsaw Wheel:</b> 3+ Buzzsaws${v.extraWheelFromHats ? " or 3+ Hats" : ""} trigger a wheel with credits, jackpots, and feature bonuses.<br>` : `<b>Original Mode:</b> no Buzzsaw wheel; the wolf resolves the house board after free games.<br>`}
       ${v.enableUpgradeWheel ? `<b>Upgrade Wheel:</b> can unlock a second-level Grand/Super chase.<br>` : ""}
-      ${v.powerGrids > 1 ? `<b>Power 4:</b> this mode rolls four virtual grids and aggregates Hard Hats/Buzzsaws for feature triggers.<br>` : ""}
+      ${v.powerGrids > 1 ? `<b>Power 4:</b> this mode displays and rolls four 3×5 grids. Paid spins aggregate all four grids for ways pays and feature triggers; construction free games also roll all four grids and build four construction boards.<br>` : ""}
       <b>Jackpots:</b> scale with bet. ${v.enableSuper ? "Super is above Grand." : "Grand is the top prize."}
     `;
   }
@@ -863,7 +935,7 @@ export function mountHuffMorePuff(mountEl, store) {
     setVariantDimensions(currentVariant());
     feature = createFeatureState();
     featureBet = 0;
-    renderGrid(el.stage, makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0])));
+    renderAllGrids(el.stage, Array.from({ length: featureGridCount() }, () => makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0]))));
     renderFeatureBoard(el, feature);
     renderJackpots();
     renderVariantInfo();
@@ -882,7 +954,7 @@ export function mountHuffMorePuff(mountEl, store) {
     el.free.textContent = feature.spinsLeft > 0 ? `Free Games: ${feature.spinsLeft} @ ${money(featureBet)}` : "Free Games: 0";
   }
 
-  renderGrid(el.stage, makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0])));
+  renderAllGrids(el.stage, Array.from({ length: featureGridCount() }, () => makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0]))));
   renderFeatureBoard(el, feature);
   renderJackpots();
   renderVariantInfo();
@@ -969,7 +1041,7 @@ export function mountHuffMorePuff(mountEl, store) {
         result = evaluateFreeSpin(bet, feature);
       }
 
-      await animateSpin(el, result.grid, !paidSpin);
+      await animateSpin(el, result, !paidSpin);
       markCells(mountEl, result);
 
       if (paidSpin) result = await runBuzzsawWheelIfNeeded(result, bet);
