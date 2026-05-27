@@ -2,15 +2,129 @@
 // Standalone Huff More Puff style slot module.
 // Separate from games/slots/* and wired through main.js as huffmorepuff.
 
-const ROWS = 3;
-const COLS = 5;
-const CELLS = ROWS * COLS;
+let ROWS = 3;
+let COLS = 5;
+let CELLS = ROWS * COLS;
 const MAX_HOUSE_TIER = 3; // 0 empty, 1 straw, 2 stick, 3 mansion
 const FEATURE_FREE_SPINS = 6;
 const HARD_HAT_TRIGGER = 3;
 
 // Bet values are stored as whole chips/cents so .20 = 20 and $100 = 10000.
 const BET_OPTIONS = [20, 40, 60, 80, 100, 200, 400, 500, 1000, 2000, 5000, 10000];
+
+const VARIANTS = {
+  original: {
+    name: "Huff N’ Puff",
+    year: "2019",
+    subtitle: "Original-style 3×5 house-building bonus",
+    cols: 5,
+    hardHatTrigger: 6,
+    freeSpins: 6,
+    retriggerHats: 3,
+    retriggerSpins: 3,
+    allowConstructionRetriggers: false,
+    enableBuzzsaw: false,
+    enableUpgradeWheel: false,
+    enableSuper: false,
+    extraWheelFromHats: false,
+    powerGrids: 1,
+    hatWeightMult: 1.15,
+    sawWeightMult: 0,
+    jackpotMult: { MINI: 20, MINOR: 100, MAJOR: 500, GRAND: 5000 },
+    note: "Six Hard Hats start six free games. During free games, hats only build or upgrade houses; they do not retrigger the construction bonus."
+  },
+  more: {
+    name: "Huff N’ More Puff",
+    year: "2022",
+    subtitle: "Buzzsaw wheel, Mansion, Buzzsaw Sweep, and Mega Hat bonuses",
+    cols: 5,
+    hardHatTrigger: 3,
+    freeSpins: 6,
+    retriggerHats: 3,
+    retriggerSpins: 3,
+    allowConstructionRetriggers: false,
+    enableBuzzsaw: true,
+    enableUpgradeWheel: false,
+    enableSuper: false,
+    extraWheelFromHats: false,
+    powerGrids: 1,
+    hatWeightMult: 1.35,
+    sawWeightMult: 1.15,
+    jackpotMult: { MINI: 20, MINOR: 100, MAJOR: 500, GRAND: 5000 },
+    note: "Three Hard Hats are tuned to start free games in this version. During free games, hats only build or upgrade houses; no retriggers are awarded."
+  },
+  evenMore: {
+    name: "Huff N’ Even More Puff",
+    year: "2024",
+    subtitle: "Upgrade wheel with Grand/Super chase",
+    cols: 5,
+    hardHatTrigger: 3,
+    freeSpins: 6,
+    retriggerHats: 3,
+    retriggerSpins: 3,
+    allowConstructionRetriggers: false,
+    enableBuzzsaw: true,
+    enableUpgradeWheel: true,
+    enableSuper: true,
+    extraWheelFromHats: false,
+    powerGrids: 1,
+    hatWeightMult: 1.3,
+    sawWeightMult: 1.35,
+    jackpotMult: { MINI: 25, MINOR: 125, MAJOR: 750, GRAND: 5000, SUPER: 15000 },
+    note: "The wheel can land Upgrade, opening a second chance at Grand or Super. Construction free games do not retrigger."
+  },
+  power4: {
+    name: "Huff N’ More Puff Power 4",
+    year: "2024",
+    subtitle: "Four-grid high-volatility mode",
+    cols: 5,
+    hardHatTrigger: 12,
+    authenticHatTarget: 24,
+    freeSpins: 6,
+    retriggerHats: 6,
+    retriggerSpins: 3,
+    allowConstructionRetriggers: false,
+    enableBuzzsaw: true,
+    enableUpgradeWheel: false,
+    enableSuper: false,
+    extraWheelFromHats: false,
+    powerGrids: 4,
+    hatWeightMult: 1.45,
+    sawWeightMult: 1.25,
+    jackpotMult: { MINI: 40, MINOR: 200, MAJOR: 1000, GRAND: 7500 },
+    note: "Emulates four 3×5 grids. The authentic target is 24 hats; this local build uses 12 for playability. Construction free games do not retrigger."
+  },
+  extra: {
+    name: "Huff N’ Extra Puff",
+    year: "2024",
+    subtitle: "Three-reel throwback with Big Bad Wolf wheel feature",
+    cols: 3,
+    hardHatTrigger: 3,
+    freeSpins: 6,
+    retriggerHats: 3,
+    retriggerSpins: 3,
+    allowConstructionRetriggers: false,
+    enableBuzzsaw: true,
+    enableUpgradeWheel: false,
+    enableSuper: false,
+    extraWheelFromHats: true,
+    powerGrids: 1,
+    hatWeightMult: 1.65,
+    sawWeightMult: 1.55,
+    jackpotMult: { MINI: 20, MINOR: 125, MAJOR: 800, GRAND: 5000 },
+    note: "Three hats or three buzzsaws spin the wheel; Big Bad Wolf can upgrade houses to mansions. Construction free games do not retrigger."
+  }
+};
+
+let currentVariantKey = "more";
+function currentVariant() { return VARIANTS[currentVariantKey] ?? VARIANTS.more; }
+function setVariantDimensions(variant) {
+  ROWS = 3;
+  COLS = variant.cols ?? 5;
+  CELLS = ROWS * COLS;
+}
+setVariantDimensions(currentVariant());
+
 
 const SYMBOLS = {
   WOLF: { label: "Wolf Wild", icon: "🐺", wild: true },
@@ -52,16 +166,16 @@ function betBoostFactor(bet) {
 
 function featureWeightsForBet(baseWeights, bet, freeMode = false) {
   const boost = betBoostFactor(bet);
-  return baseWeights.map((w, reelIndex) => {
-    const centerReel = reelIndex === 2 ? 1.12 : 1;
+  const variant = currentVariant();
+  return baseWeights.slice(0, COLS).map((w, reelIndex) => {
+    const centerReel = reelIndex === Math.floor(COLS / 2) ? 1.12 : 1;
+    const hatMult = variant.hatWeightMult ?? 1;
+    const sawMult = variant.enableBuzzsaw ? (variant.sawWeightMult ?? 1) : 0;
     return {
       ...w,
-      // Higher bets raise the chance of the two feature drivers.
-      HAT: w.HAT * (1 + boost * (freeMode ? 1.25 : 1.10) * centerReel),
-      SAW: w.SAW * (1 + boost * (freeMode ? 1.35 : 1.15) * centerReel),
-      // A small wild lift keeps high-denom spins feeling more active without making them auto-wins.
+      HAT: w.HAT * hatMult * (1 + boost * (freeMode ? 1.35 : 1.15) * centerReel),
+      SAW: w.SAW * sawMult * (1 + boost * (freeMode ? 1.45 : 1.25) * centerReel),
       WOLF: w.WOLF * (1 + boost * 0.35),
-      // Slightly reduce low symbols at the top end so total feature frequency actually moves.
       A: w.A * (1 - boost * 0.08),
       K: w.K * (1 - boost * 0.08),
       Q: w.Q * (1 - boost * 0.08),
@@ -74,12 +188,11 @@ function jackpotWheelChance(bet) {
   return 0.22 + boost * 0.18; // 22% at min bet, 40% at max bet
 }
 
-const JACKPOTS = {
-  MINI: 20,
-  MINOR: 100,
-  MAJOR: 500,
-  GRAND: 5000,
-};
+const JACKPOTS = { MINI: 20, MINOR: 100, MAJOR: 500, GRAND: 5000, SUPER: 15000 };
+
+function activeJackpots() {
+  return currentVariant().jackpotMult ?? JACKPOTS;
+}
 
 function money(chips) {
   return `$${(Number(chips || 0) / 100).toFixed(2)}`;
@@ -134,6 +247,10 @@ function symbolPositions(grid, symbol) {
   return out;
 }
 
+function randomPositions(n) {
+  return [...Array(CELLS).keys()].sort(() => Math.random() - 0.5).slice(0, Math.max(0, Math.min(CELLS, n)));
+}
+
 function allSymbolsForPays() {
   return Object.keys(SYMBOLS).filter((s) => SYMBOLS[s].pay);
 }
@@ -177,6 +294,7 @@ function createFeatureState() {
     board: Array(CELLS).fill(0),
     totalWin: 0,
     active: false,
+    resolvedPrizes: null,
   };
 }
 
@@ -214,15 +332,137 @@ function tierIcon(tier) {
   return "";
 }
 
+function weightedChoice(items) {
+  const total = items.reduce((sum, item) => sum + item.weight, 0);
+  let r = Math.random() * total;
+  for (const item of items) {
+    r -= item.weight;
+    if (r <= 0) return item.value;
+  }
+  return items[0]?.value;
+}
+
+function randInt(min, max) {
+  return Math.floor(min + Math.random() * (max - min + 1));
+}
+
 function jackpotAward(name, bet) {
-  return credits(bet * JACKPOTS[name]);
+  return credits(bet * (activeJackpots()[name] ?? JACKPOTS[name] ?? 0));
+}
+
+function randomHouseWordBonus(tier, bet) {
+  const variant = currentVariant();
+  const boost = betBoostFactor(bet);
+
+  if (tier <= 1) {
+    return weightedChoice([
+      { value: "MINI", weight: 96 - boost * 10 },
+      { value: "MINOR", weight: 4 + boost * 10 },
+    ]);
+  }
+
+  if (tier === 2) {
+    return weightedChoice([
+      { value: "MINI", weight: 82 - boost * 14 },
+      { value: "MINOR", weight: 16 + boost * 10 },
+      { value: "MAJOR", weight: 2 + boost * 4 },
+    ]);
+  }
+
+  const choices = [
+    { value: "MINI", weight: 62 - boost * 18 },
+    { value: "MINOR", weight: 25 + boost * 6 },
+    { value: "MAJOR", weight: 10 + boost * 7 },
+    { value: "GRAND", weight: 3 + boost * 4 },
+  ];
+  if (variant.enableSuper) choices.push({ value: "SUPER", weight: 0.8 + boost * 2.5 });
+  return weightedChoice(choices);
+}
+
+function rollHousePrize(tier, bet) {
+  const boost = betBoostFactor(bet);
+  const safeTier = Math.max(1, Math.min(MAX_HOUSE_TIER, tier | 0));
+
+  // Every house pays something. Better houses have larger credit ranges and a higher
+  // chance to reveal jackpot/word bonuses.
+  const wordChanceByTier = {
+    1: 0.025 + boost * 0.015,
+    2: 0.09 + boost * 0.05,
+    3: 0.38 + boost * 0.17,
+  };
+
+  if (Math.random() < wordChanceByTier[safeTier]) {
+    const word = randomHouseWordBonus(safeTier, bet);
+    return {
+      type: "WORD",
+      word,
+      label: word,
+      value: jackpotAward(word, bet),
+    };
+  }
+
+  const mult =
+    safeTier === 1
+      ? randInt(1, 4)
+      : safeTier === 2
+        ? randInt(4, 12)
+        : randInt(10, 35);
+
+  return {
+    type: "CREDIT",
+    word: null,
+    label: `${mult}×`,
+    value: credits(bet * mult),
+  };
+}
+
+function resolveConstructionBonus(feature, bet) {
+  const prizes = feature.board.map((tier, pos) => {
+    if (tier <= 0) return null;
+    const prize = rollHousePrize(tier, bet);
+    return { pos, tier, ...prize };
+  });
+
+  const active = prizes.filter(Boolean);
+  const total = active.reduce((sum, prize) => sum + prize.value, 0);
+  const wordCounts = active.reduce((acc, prize) => {
+    if (prize.type === "WORD") acc[prize.word] = (acc[prize.word] || 0) + 1;
+    return acc;
+  }, {});
+  const tierCounts = active.reduce((acc, prize) => {
+    const label = houseTierLabel(prize.tier);
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
+  feature.resolvedPrizes = prizes;
+
+  return {
+    prizes: active,
+    affected: active.map((p) => p.pos),
+    total,
+    wordCounts,
+    tierCounts,
+  };
 }
 
 function randomJackpotName(bet) {
   const boost = betBoostFactor(bet);
   const r = Math.random();
+  const variant = currentVariant();
 
-  // Higher bets do not guarantee a jackpot tier, but they move probability toward Major/Grand.
+  if (variant.enableSuper) {
+    const miniCut = 0.55 - boost * 0.18;
+    const minorCut = 0.82 - boost * 0.10;
+    const majorCut = 0.95 - boost * 0.05;
+    const grandCut = 0.992 - boost * 0.035;
+    if (r < miniCut) return "MINI";
+    if (r < minorCut) return "MINOR";
+    if (r < majorCut) return "MAJOR";
+    if (r < grandCut) return "GRAND";
+    return "SUPER";
+  }
+
   const miniCut = 0.62 - boost * 0.20;
   const minorCut = 0.88 - boost * 0.10;
   const majorCut = 0.985 - boost * 0.035;
@@ -234,14 +474,20 @@ function randomJackpotName(bet) {
 }
 
 function spinBuzzsawWheel(sawCount, bet) {
+  const variant = currentVariant();
   const r = Math.random();
   const jackpotCut = jackpotWheelChance(bet);
   const remaining = 1 - jackpotCut;
+
+  if (variant.enableUpgradeWheel && r < 0.18 + betBoostFactor(bet) * 0.10) {
+    return { type: "UPGRADE", label: "Upgrade Wheel" };
+  }
+  if (variant.extraWheelFromHats && r < 0.34) return { type: "BIG_BAD_WOLF", label: "Big Bad Wolf" };
   if (r < jackpotCut) return { type: "JACKPOT", label: randomJackpotName(bet) };
   if (r < jackpotCut + remaining * 0.28) return { type: "MANSION", label: "Mansion Bonus" };
   if (r < jackpotCut + remaining * 0.56) return { type: "BUZZSAW", label: "Buzzsaw Sweep" };
   if (r < jackpotCut + remaining * 0.78) return { type: "MEGA_HAT", label: "Mega Hat Bonus" };
-  return { type: "CREDIT", label: `${20 * sawCount}x Credit Award`, award: credits(bet * 20 * sawCount) };
+  return { type: "CREDIT", label: `${20 * Math.max(1, sawCount)}x Credit Award`, award: credits(bet * 20 * Math.max(1, sawCount)) };
 }
 
 function applyMansionBonus(feature, sawPositions, bet) {
@@ -298,28 +544,47 @@ function applyFreeSpinConstruction(feature, grid, bet) {
   }
 
   const mansions = mansionPayoutCount(feature.board);
-  const award = credits(bet * (mansions * 5 + overflowMansions * 25));
+  // House values are resolved at the end of the construction bonus so each
+  // built house pays once: Straw, Stick, and Mansion all reveal prizes.
+  const award = 0;
   return { builds, affected: builds.map((b) => b.pos).filter((p) => p != null), award, hatCount: hatPositions.length, mansions, overflowMansions };
 }
 
 function evaluatePaidSpin(bet) {
-  const grid = makeGrid(false, bet);
-  const ways = waysWin(grid, bet);
-  const hatCount = countSymbol(grid, "HAT");
-  const sawCount = countSymbol(grid, "SAW");
-  const sawPositions = symbolPositions(grid, "SAW");
-  const featureTrigger = hatCount >= HARD_HAT_TRIGGER;
-  const wheelTrigger = sawCount >= 3;
+  const variant = currentVariant();
+  const gridCount = Math.max(1, variant.powerGrids || 1);
+  const grids = Array.from({ length: gridCount }, () => makeGrid(false, bet));
+  const grid = grids[0];
+
+  let ways = { wins: [], total: 0 };
+  let hatCount = 0;
+  let sawCount = 0;
+  let sawPositions = [];
+  let hatPositions = [];
+
+  grids.forEach((g, gridIndex) => {
+    const w = waysWin(g, bet);
+    ways.total += w.total;
+    if (gridIndex === 0) ways.wins.push(...w.wins);
+    hatCount += countSymbol(g, "HAT");
+    sawCount += countSymbol(g, "SAW");
+    if (gridIndex === 0) {
+      sawPositions = symbolPositions(g, "SAW");
+      hatPositions = symbolPositions(g, "HAT");
+    } else {
+      hatPositions.push(...randomPositions(countSymbol(g, "HAT")));
+      sawPositions.push(...randomPositions(countSymbol(g, "SAW")));
+    }
+  });
+
+  sawPositions = sawPositions.slice(0, CELLS);
+  hatPositions = hatPositions.slice(0, CELLS);
+
+  const featureTrigger = hatCount >= (variant.hardHatTrigger ?? HARD_HAT_TRIGGER);
+  const wheelTrigger = variant.enableBuzzsaw && (sawCount >= 3 || (variant.extraWheelFromHats && hatCount >= 3));
 
   return {
-    grid,
-    ways,
-    hatCount,
-    sawCount,
-    sawPositions,
-    featureTrigger,
-    wheelTrigger,
-    totalWin: ways.total,
+    grid, grids, gridCount, ways, hatCount, sawCount, sawPositions, hatPositions, featureTrigger, wheelTrigger, totalWin: ways.total,
   };
 }
 
@@ -337,6 +602,17 @@ function evaluateFreeSpin(bet, feature) {
     wheel = spinBuzzsawWheel(sawCount, bet);
     if (wheel.type === "JACKPOT") wheelAward = jackpotAward(wheel.label, bet);
     if (wheel.type === "CREDIT") wheelAward = wheel.award;
+    if (wheel.type === "UPGRADE") {
+      wheel.label = `Upgrade Wheel → ${randomJackpotName(bet)}`;
+      const jpName = wheel.label.split("→ ")[1];
+      wheelAward = jackpotAward(jpName, bet);
+    }
+    if (wheel.type === "BIG_BAD_WOLF") {
+      const b = applyBuzzsawSweep(feature, sawPositions.length ? sawPositions : randomPositions(3), bet);
+      wheelAward = b.award;
+      wheelAffected = b.affected;
+      wheel.note = "Big Bad Wolf upgraded houses toward mansions.";
+    }
     if (wheel.type === "MANSION") {
       const m = applyMansionBonus(feature, sawPositions, bet);
       wheelAward = m.award;
@@ -364,6 +640,8 @@ function evaluateFreeSpin(bet, feature) {
 }
 
 function renderGrid(stage, grid) {
+  stage.style.setProperty("--hmp-cols", COLS);
+  stage.style.setProperty("--hmp-rows", ROWS);
   stage.innerHTML = grid.map((row, r) => row.map((sym, c) => cellHtml(sym, r, c)).join("")).join("");
 }
 
@@ -377,11 +655,15 @@ function cellHtml(sym, r, c) {
 
 function renderFeatureBoard(el, feature, highlight = []) {
   const hi = new Set(highlight);
-  el.board.innerHTML = feature.board.map((tier, pos) => `
-    <div class="hmpBuildCell ${tier >= 3 ? "mansion" : tier === 2 ? "stick" : tier === 1 ? "straw" : ""} ${hi.has(pos) ? "hit" : ""}">
+  el.board.innerHTML = feature.board.map((tier, pos) => {
+    const prize = feature.resolvedPrizes?.[pos] ?? null;
+    const prizeText = prize ? (prize.type === "WORD" ? prize.label : money(prize.value)) : houseTierLabel(tier);
+    return `
+    <div class="hmpBuildCell ${tier >= 3 ? "mansion" : tier === 2 ? "stick" : tier === 1 ? "straw" : ""} ${hi.has(pos) ? "hit" : ""} ${prize?.type === "WORD" ? "wordPrize" : prize ? "creditPrize" : ""}">
       <div>${tierIcon(tier)}</div>
-      <small>${houseTierLabel(tier)}</small>
-    </div>`).join("");
+      <small>${prizeText}</small>
+    </div>`;
+  }).join("");
 }
 
 function clearCellMarks(root) {
@@ -408,10 +690,16 @@ function renderWins(el, result, feature = null) {
     rows.push(`<div class="hmpWinRow"><span>${meta.icon} ${meta.label} — ${w.ways} ways × ${w.reels} reels</span><b>${money(w.win)}</b></div>`);
   }
 
-  if (result.featureTrigger) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 ${HARD_HAT_TRIGGER}+ Hard Hats triggered Free Games</span><b>6 spins</b></div>`);
+  if (result.featureTrigger) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 ${currentVariant().hardHatTrigger ?? HARD_HAT_TRIGGER}+ Hard Hats triggered Free Games</span><b>6 spins</b></div>`);
   if (result.wheelTrigger) rows.push(`<div class="hmpWinRow hmpSawRow"><span>🪚 3+ Buzzsaws triggered Bonus Wheel</span><b>Ready</b></div>`);
-  if (result.construction?.hatCount) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 Hats built houses — ${result.construction.mansions} mansion(s)</span><b>${money(result.construction.award)}</b></div>`);
+  if (result.construction?.hatCount) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 Hats built houses — ${result.construction.mansions} mansion(s)</span><b>Built</b></div>`);
+  if (result.finalConstruction) {
+    const words = Object.entries(result.finalConstruction.wordCounts || {}).map(([k, v]) => `${v}× ${k}`).join(", ");
+    const tiers = Object.entries(result.finalConstruction.tierCounts || {}).map(([k, v]) => `${v} ${k}`).join(", ");
+    rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🐺 Construction payout — ${tiers}${words ? ` — Word bonuses: ${words}` : ""}</span><b>${money(result.finalConstruction.total)}</b></div>`);
+  }
   if (result.wheel) rows.push(`<div class="hmpWinRow hmpSawRow"><span>🪚 ${result.wheel.label}${result.wheel.note ? ` — ${result.wheel.note}` : ""}</span><b>${money(result.wheelAward)}</b></div>`);
+  if (result.retrigger) rows.push(`<div class="hmpWinRow hmpFeatureRow"><span>🪖 Retrigger: ${result.retrigger.hats} hats</span><b>+${result.retrigger.spins} spins</b></div>`);
 
   if (!rows.length) rows.push(`<div class="help">No win. 243 ways pay from the leftmost reel. Hard Hats and Buzzsaws can trigger features.</div>`);
   el.winList.innerHTML = rows.join("");
@@ -453,11 +741,11 @@ function ensureHmpStyles() {
     .hmpControls{display:flex;align-items:end;flex-wrap:wrap;gap:10px}.hmpControls label{display:grid;gap:5px;color:var(--muted,#aab3d3);font-size:12px}.hmpControls select{min-width:130px}
     .hmpJackpots{display:grid;grid-template-columns:repeat(4,minmax(105px,1fr));gap:8px}.hmpJackpots div{padding:9px 10px;border-radius:14px;border:1px solid rgba(250,204,21,.22);background:rgba(250,204,21,.08)}.hmpJackpots small{display:block;color:rgba(255,255,255,.7)}.hmpJackpots b{font-size:18px}
     .hmpMeters{display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:10px}.hmpMeters>div{display:grid;gap:4px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}.hmpMeters strong{font-size:22px}
-    .hmpGameGrid{display:grid;grid-template-columns:minmax(360px,640px) minmax(260px,1fr);gap:14px;align-items:start}.hmpStage{display:grid!important;grid-template-columns:repeat(5,minmax(68px,1fr))!important;grid-template-rows:repeat(3,92px)!important;gap:8px!important;padding:14px!important;border-radius:18px;border:1px solid rgba(249,115,22,.24);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.12)),rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+    .hmpGameGrid{display:grid;grid-template-columns:minmax(360px,640px) minmax(260px,1fr);gap:14px;align-items:start}.hmpStage{display:grid!important;grid-template-columns:repeat(var(--hmp-cols,5),minmax(68px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),92px)!important;gap:8px!important;padding:14px!important;border-radius:18px;border:1px solid rgba(249,115,22,.24);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.12)),rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
     .hmpCell{display:grid!important;place-items:center!important;align-content:center!important;gap:3px;padding:8px 5px;border-radius:16px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);position:relative;overflow:hidden;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}.hmpCell::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 12%,rgba(255,255,255,.18),transparent 36%);pointer-events:none}.hmpIcon{font-size:32px;line-height:1;font-weight:1000;z-index:1}.hmpLabel{font-size:11px;color:rgba(233,236,245,.76);text-align:center;z-index:1}.hmpCell[data-sym="A"] .hmpIcon,.hmpCell[data-sym="K"] .hmpIcon,.hmpCell[data-sym="Q"] .hmpIcon{font-size:28px;color:#fed7aa}.hmpWild{border-color:rgba(248,113,113,.52);background:rgba(127,29,29,.22)}.hmpHat{border-color:rgba(250,204,21,.55);background:rgba(250,204,21,.09)}.hmpSaw{border-color:rgba(96,165,250,.55);background:rgba(37,99,235,.12)}.hmpWin{transform:translateY(-2px);box-shadow:0 0 0 3px rgba(52,211,153,.16),0 0 20px rgba(52,211,153,.26)}
-    .hmpBuildPanel,.hmpPanel{border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);padding:12px}.hmpBuildPanel h3{margin:0 0 8px}.hmpBuildGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.hmpBuildCell{height:66px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);display:grid;place-items:center;align-content:center;font-weight:900}.hmpBuildCell small{font-size:10px;color:rgba(255,255,255,.65)}.hmpBuildCell.straw{background:rgba(217,119,6,.15);border-color:rgba(217,119,6,.4)}.hmpBuildCell.stick{background:rgba(120,53,15,.18);border-color:rgba(180,83,9,.5)}.hmpBuildCell.mansion{background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.55)}.hmpBuildCell.hit{animation:hmpBuildHit .9s ease-out 1}@keyframes hmpBuildHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
+    .hmpBuildPanel,.hmpPanel{border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);padding:12px}.hmpBuildPanel h3{margin:0 0 8px}.hmpBuildGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.hmpBuildCell{height:66px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);display:grid;place-items:center;align-content:center;font-weight:900}.hmpBuildCell small{font-size:10px;color:rgba(255,255,255,.65)}.hmpBuildCell.straw{background:rgba(217,119,6,.15);border-color:rgba(217,119,6,.4)}.hmpBuildCell.stick{background:rgba(120,53,15,.18);border-color:rgba(180,83,9,.5)}.hmpBuildCell.mansion{background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.55)}.hmpBuildCell.wordPrize{box-shadow:0 0 18px rgba(250,204,21,.35);border-color:rgba(250,204,21,.85)}.hmpBuildCell.creditPrize{box-shadow:0 0 14px rgba(52,211,153,.22);border-color:rgba(52,211,153,.55)}.hmpBuildCell.hit{animation:hmpBuildHit .9s ease-out 1}@keyframes hmpBuildHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
     .hmpPanelHead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}.hmpWinList{display:grid;gap:8px}.hmpWinRow{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}.hmpFeatureRow{border-color:rgba(249,115,22,.28);background:rgba(249,115,22,.1)}.hmpSawRow{border-color:rgba(96,165,250,.35);background:rgba(37,99,235,.12)}.hmpRules{line-height:1.7}
-    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(5,minmax(48px,1fr))!important;grid-template-rows:repeat(3,68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
+    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(48px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
 }
@@ -469,13 +757,18 @@ export function mountHuffMorePuff(mountEl, store) {
       <div class="hmpHero">
         <div>
           <div class="hmpEyebrow">Standalone Slot</div>
-          <h2>Huff 'N More Puff</h2>
-          <p class="help">5×3, 243 ways, Hard Hat free games, Buzzsaw wheel bonuses, jackpot scaling, and house construction from straw to stick to mansion.</p>
+          <h2 id="hmp_title">Huff More Puff</h2>
+          <p class="help" id="hmp_subtitle">5×3, 243 ways, Hard Hat free games, Buzzsaw wheel bonuses, jackpot scaling, and house construction from straw to stick to mansion.</p>
         </div>
         <div class="hmpBank" id="hmp_bank">—</div>
       </div>
 
       <div class="hmpControls">
+        <label>Game Version
+          <select id="hmp_variant">
+            ${Object.entries(VARIANTS).map(([k, v]) => `<option value="${k}" ${k === currentVariantKey ? "selected" : ""}>${v.name} (${v.year})</option>`).join("")}
+          </select>
+        </label>
         <label>Bet Size
           <select id="hmp_bet">
             ${BET_OPTIONS.map((b) => `<option value="${b}" ${b === 100 ? "selected" : ""}>${money(b)}</option>`).join("")}
@@ -514,10 +807,10 @@ export function mountHuffMorePuff(mountEl, store) {
 
       <details class="settings" open>
         <summary>Rules</summary>
-        <div class="help hmpRules">
+        <div class="help hmpRules" id="hmp_rules">
           <b>Bet Range:</b> ${money(BET_OPTIONS[0])} to ${money(BET_OPTIONS[BET_OPTIONS.length - 1])} per spin.<br>
           <b>243 Ways:</b> matching paying symbols win left-to-right across adjacent reels. Wolf is wild.<br>
-          <b>Hard Hat Free Games:</b> ${HARD_HAT_TRIGGER}+ Hard Hats trigger ${FEATURE_FREE_SPINS} free games. Hats build Straw, then Stick, then Mansion. Hats on full Mansion spaces help unfinished spaces instead.<br>
+          <b>Hard Hat Free Games:</b> ${HARD_HAT_TRIGGER}+ Hard Hats trigger ${currentVariant().freeSpins ?? FEATURE_FREE_SPINS} free games. Hats build Straw, then Stick, then Mansion. During free games, hats do <b>not</b> retrigger more spins. At the end, every built house pays; Mansions have the best chance to reveal Mini/Minor/Major/Grand word bonuses. Hats on full Mansion spaces help unfinished spaces instead.<br>
           <b>Buzzsaw Wheel:</b> 3+ Buzzsaws trigger a wheel: credits, Mini/Minor/Major/Grand jackpots, Mansion Bonus, Buzzsaw Sweep, or Mega Hat Bonus.<br>
           <b>Bet Scaling:</b> higher bet sizes increase Hard Hat, Buzzsaw, Buzzsaw Wheel, and higher jackpot-tier chances.
           <br><b>Jackpots:</b> scale with bet. Grand pays 5,000× bet.
@@ -527,6 +820,10 @@ export function mountHuffMorePuff(mountEl, store) {
   `;
 
   const el = {
+    variant: mountEl.querySelector("#hmp_variant"),
+    title: mountEl.querySelector("#hmp_title"),
+    subtitle: mountEl.querySelector("#hmp_subtitle"),
+    rules: mountEl.querySelector("#hmp_rules"),
     bet: mountEl.querySelector("#hmp_bet"),
     spin: mountEl.querySelector("#hmp_spin"),
     demo: mountEl.querySelector("#hmp_demo"),
@@ -547,9 +844,36 @@ export function mountHuffMorePuff(mountEl, store) {
   let feature = createFeatureState();
   let featureBet = 0;
 
+  function renderVariantInfo() {
+    const v = currentVariant();
+    el.title.textContent = v.name;
+    el.subtitle.textContent = `${v.subtitle}. ${COLS}×${ROWS}, ${COLS === 5 ? "243 ways" : "27 ways"}. ${v.note}`;
+    el.rules.innerHTML = `
+      <b>Bet Range:</b> ${money(BET_OPTIONS[0])} to ${money(BET_OPTIONS[BET_OPTIONS.length - 1])} per spin.<br>
+      <b>${COLS === 5 ? "243 Ways" : "27 Ways"}:</b> matching paying symbols win left-to-right across adjacent reels. Wolf is wild.<br>
+      <b>Hard Hat Free Games:</b> ${v.hardHatTrigger}+ Hard Hats trigger ${v.freeSpins} free games. During free games, Hard Hats only build or upgrade houses and do <b>not</b> retrigger more free games. Every Straw, Stick, and Mansion house pays at the end; Mansions are weighted toward Mini/Minor/Major/Grand word bonuses.<br>
+      ${v.enableBuzzsaw ? `<b>Buzzsaw Wheel:</b> 3+ Buzzsaws${v.extraWheelFromHats ? " or 3+ Hats" : ""} trigger a wheel with credits, jackpots, and feature bonuses.<br>` : `<b>Original Mode:</b> no Buzzsaw wheel; the wolf resolves the house board after free games.<br>`}
+      ${v.enableUpgradeWheel ? `<b>Upgrade Wheel:</b> can unlock a second-level Grand/Super chase.<br>` : ""}
+      ${v.powerGrids > 1 ? `<b>Power 4:</b> this mode rolls four virtual grids and aggregates Hard Hats/Buzzsaws for feature triggers.<br>` : ""}
+      <b>Jackpots:</b> scale with bet. ${v.enableSuper ? "Super is above Grand." : "Grand is the top prize."}
+    `;
+  }
+
+  function resetVariant() {
+    setVariantDimensions(currentVariant());
+    feature = createFeatureState();
+    featureBet = 0;
+    renderGrid(el.stage, makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0])));
+    renderFeatureBoard(el, feature);
+    renderJackpots();
+    renderVariantInfo();
+    refreshFreeLabel();
+    el.status.textContent = `Loaded ${currentVariant().name}.`;
+  }
+
   function renderJackpots() {
     const bet = Number(el.bet.value);
-    el.jackpots.innerHTML = Object.entries(JACKPOTS).map(([name, mult]) => `
+    el.jackpots.innerHTML = Object.entries(activeJackpots()).map(([name, mult]) => `
       <div><small>${name} ${mult.toLocaleString()}×</small><b>${money(jackpotAward(name, bet))}</b></div>
     `).join("");
   }
@@ -561,8 +885,10 @@ export function mountHuffMorePuff(mountEl, store) {
   renderGrid(el.stage, makeGrid(false, Number(el.bet?.value || BET_OPTIONS[0])));
   renderFeatureBoard(el, feature);
   renderJackpots();
+  renderVariantInfo();
   refreshFreeLabel();
   safeRefreshBank(el, store);
+  el.variant.addEventListener("change", () => { currentVariantKey = el.variant.value; resetVariant(); });
   el.bet.addEventListener("change", renderJackpots);
 
   async function runBuzzsawWheelIfNeeded(result, bet) {
@@ -576,14 +902,25 @@ export function mountHuffMorePuff(mountEl, store) {
 
     if (wheel.type === "JACKPOT") wheelAward = jackpotAward(wheel.label, bet);
     if (wheel.type === "CREDIT") wheelAward = wheel.award;
+    if (wheel.type === "UPGRADE") {
+      wheel.label = `Upgrade Wheel → ${randomJackpotName(bet)}`;
+      const jpName = wheel.label.split("→ ")[1];
+      wheelAward = jackpotAward(jpName, bet);
+    }
+    if (wheel.type === "BIG_BAD_WOLF") {
+      const b = applyBuzzsawSweep(feature, result.sawPositions?.length ? result.sawPositions : randomPositions(3), bet);
+      wheelAward = b.award;
+      wheelAffected = b.affected;
+      wheel.note = "Big Bad Wolf upgraded houses toward mansions.";
+    }
     if (wheel.type === "MANSION") {
-      const m = applyMansionBonus(feature, result.sawPositions, bet);
+      const m = applyMansionBonus(feature, result.sawPositions?.length ? result.sawPositions : randomPositions(3), bet);
       wheelAward = m.award;
       wheelAffected = m.affected;
       wheel.note = m.note;
     }
     if (wheel.type === "BUZZSAW") {
-      const b = applyBuzzsawSweep(feature, result.sawPositions, bet);
+      const b = applyBuzzsawSweep(feature, result.sawPositions?.length ? result.sawPositions : randomPositions(3), bet);
       wheelAward = b.award;
       wheelAffected = b.affected;
       wheel.note = b.note;
@@ -639,15 +976,30 @@ export function mountHuffMorePuff(mountEl, store) {
 
       if (paidSpin && result.featureTrigger) {
         feature.active = true;
-        feature.spinsLeft = FEATURE_FREE_SPINS;
+        feature.spinsLeft = currentVariant().freeSpins ?? FEATURE_FREE_SPINS;
         featureBet = bet;
         // Triggering hats seed the construction board using the actual hat positions first.
-        for (const pos of symbolPositions(result.grid, "HAT")) buildWithHat(feature, pos);
+        for (const pos of (result.hatPositions?.length ? result.hatPositions : symbolPositions(result.grid, "HAT"))) buildWithHat(feature, pos);
       } else if (!paidSpin) {
+        const v = currentVariant();
+        // Construction bonus retriggers are intentionally disabled.
+        // Hats during free games only build/upgrade the construction board.
+        if (v.allowConstructionRetriggers === true && (result.construction?.hatCount || 0) >= (v.retriggerHats ?? 999)) {
+          feature.spinsLeft += v.retriggerSpins ?? 0;
+          result.retrigger = { hats: result.construction.hatCount, spins: v.retriggerSpins ?? 0 };
+        }
         feature.spinsLeft = Math.max(0, feature.spinsLeft - 1);
       }
 
-      renderFeatureBoard(el, feature, result.wheelAffected ?? result.construction?.affected ?? []);
+      if (!paidSpin && feature.spinsLeft === 0 && feature.board.some((tier) => tier > 0) && !feature.resolvedPrizes) {
+        const finalConstruction = resolveConstructionBonus(feature, bet);
+        result.finalConstruction = finalConstruction;
+        result.totalWin += finalConstruction.total;
+        feature.totalWin += finalConstruction.total;
+      }
+
+      const boardHighlight = result.finalConstruction?.affected ?? result.wheelAffected ?? result.construction?.affected ?? [];
+      renderFeatureBoard(el, feature, boardHighlight);
       renderWins(el, result, feature);
       renderMeters(el, result, feature);
       refreshFreeLabel();
@@ -664,7 +1016,7 @@ export function mountHuffMorePuff(mountEl, store) {
       } else if (result.totalWin > 0) {
         el.status.textContent = `Won ${money(result.totalWin)}.`;
       } else if (result.featureTrigger) {
-        el.status.textContent = `Free Games triggered with ${FEATURE_FREE_SPINS} spins.`;
+        el.status.textContent = `Free Games triggered with ${currentVariant().freeSpins ?? FEATURE_FREE_SPINS} spins.`;
       } else if (result.wheelTrigger) {
         el.status.textContent = `Buzzsaw Wheel awarded ${money(result.wheelAward || 0)}.`;
       } else {
