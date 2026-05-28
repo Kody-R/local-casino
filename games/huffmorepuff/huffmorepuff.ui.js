@@ -492,11 +492,29 @@ function randomJackpotName(bet) {
   return "GRAND";
 }
 
-function spinBuzzsawWheel(sawCount, bet) {
+function spinBuzzsawWheel(sawCount, bet, { construction = false } = {}) {
   const variant = currentVariant();
   const r = Math.random();
   const jackpotCut = jackpotWheelChance(bet);
   const remaining = 1 - jackpotCut;
+  const saws = Math.max(1, sawCount || 0);
+
+  // Paid-spin wheel intentionally excludes construction-only bonuses.
+  // Mansion Bonus, Buzzsaw Sweep, Mega Hat, and Big Bad Wolf upgrades are
+  // only allowed while the construction/free-games feature is active.
+  if (!construction) {
+    if (variant.enableUpgradeWheel && r < 0.18 + betBoostFactor(bet) * 0.10) {
+      return { type: "UPGRADE", label: "Upgrade Wheel" };
+    }
+    if (r < jackpotCut) return { type: "JACKPOT", label: randomJackpotName(bet) };
+    const creditMult = weightedChoice([
+      { value: 8 * saws, weight: 45 },
+      { value: 12 * saws, weight: 30 },
+      { value: 20 * saws, weight: 18 },
+      { value: 35 * saws, weight: 7 },
+    ]);
+    return { type: "CREDIT", label: `${creditMult}x Credit Award`, award: credits(bet * creditMult) };
+  }
 
   if (variant.enableUpgradeWheel && r < 0.18 + betBoostFactor(bet) * 0.10) {
     return { type: "UPGRADE", label: "Upgrade Wheel" };
@@ -506,7 +524,7 @@ function spinBuzzsawWheel(sawCount, bet) {
   if (r < jackpotCut + remaining * 0.28) return { type: "MANSION", label: "Mansion Bonus" };
   if (r < jackpotCut + remaining * 0.56) return { type: "BUZZSAW", label: "Buzzsaw Sweep" };
   if (r < jackpotCut + remaining * 0.78) return { type: "MEGA_HAT", label: "Mega Hat Bonus" };
-  return { type: "CREDIT", label: `${20 * Math.max(1, sawCount)}x Credit Award`, award: credits(bet * 20 * Math.max(1, sawCount)) };
+  return { type: "CREDIT", label: `${20 * saws}x Credit Award`, award: credits(bet * 20 * saws) };
 }
 
 function applyMansionBonus(feature, sawPositions, bet) {
@@ -634,7 +652,7 @@ function evaluateFreeSpin(bet, feature) {
   let wheelAffected = [];
 
   if (sawCount >= 3) {
-    wheel = spinBuzzsawWheel(sawCount, bet);
+    wheel = spinBuzzsawWheel(sawCount, bet, { construction: true });
     if (wheel.type === "JACKPOT") wheelAward = jackpotAward(wheel.label, bet);
     if (wheel.type === "CREDIT") wheelAward = wheel.award;
     if (wheel.type === "UPGRADE") {
@@ -817,8 +835,9 @@ function ensureHmpStyles() {
     .hmpCell{display:grid!important;place-items:center!important;align-content:center!important;gap:3px;padding:8px 5px;border-radius:16px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);position:relative;overflow:hidden;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}.hmpCell::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 12%,rgba(255,255,255,.18),transparent 36%);pointer-events:none}.hmpIcon{font-size:32px;line-height:1;font-weight:1000;z-index:1}.hmpLabel{font-size:11px;color:rgba(233,236,245,.76);text-align:center;z-index:1}.hmpCell[data-sym="A"] .hmpIcon,.hmpCell[data-sym="K"] .hmpIcon,.hmpCell[data-sym="Q"] .hmpIcon{font-size:28px;color:#fed7aa}.hmpWild{border-color:rgba(248,113,113,.52);background:rgba(127,29,29,.22)}.hmpHat{border-color:rgba(250,204,21,.55);background:rgba(250,204,21,.09)}.hmpSaw{border-color:rgba(96,165,250,.55);background:rgba(37,99,235,.12)}.hmpWin{transform:translateY(-2px);box-shadow:0 0 0 3px rgba(52,211,153,.16),0 0 20px rgba(52,211,153,.26)}
     .hmpBuildPanel,.hmpPanel{border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);padding:12px}.hmpBuildPanel h3{margin:0 0 8px}.hmpBuildGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.hmpBuildPower4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.hmpBuildGridPanel{display:grid;gap:5px}.hmpBuildMiniGrid .hmpBuildCell{height:44px;border-radius:10px}.hmpBuildMiniGrid .hmpBuildCell small{font-size:9px}.hmpBuildCell{height:66px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);display:grid;place-items:center;align-content:center;font-weight:900}.hmpBuildCell small{font-size:10px;color:rgba(255,255,255,.65)}.hmpBuildCell.straw{background:rgba(217,119,6,.15);border-color:rgba(217,119,6,.4)}.hmpBuildCell.stick{background:rgba(120,53,15,.18);border-color:rgba(180,83,9,.5)}.hmpBuildCell.mansion{background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.55)}.hmpBuildCell.wordPrize{box-shadow:0 0 18px rgba(250,204,21,.35);border-color:rgba(250,204,21,.85)}.hmpBuildCell.creditPrize{box-shadow:0 0 14px rgba(52,211,153,.22);border-color:rgba(52,211,153,.55)}.hmpBuildCell.hit{animation:hmpBuildHit .9s ease-out 1}@keyframes hmpBuildHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
     .hmpPanelHead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}.hmpWinList{display:grid;gap:8px}.hmpWinRow{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}.hmpFeatureRow{border-color:rgba(249,115,22,.28);background:rgba(249,115,22,.1)}.hmpSawRow{border-color:rgba(96,165,250,.35);background:rgba(37,99,235,.12)}.hmpRules{line-height:1.7}
+
     .hmpWheelOverlay{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:radial-gradient(circle at center,rgba(15,23,42,.65),rgba(0,0,0,.82));backdrop-filter:blur(4px);padding:18px}.hmpWheelOverlay.hidden{display:none}.hmpWheelModal{width:min(760px,96vw);border-radius:24px;border:1px solid rgba(250,204,21,.25);background:radial-gradient(circle at 50% 0%,rgba(249,115,22,.22),transparent 34%),rgba(15,23,42,.98);box-shadow:0 30px 90px rgba(0,0,0,.6);padding:18px;display:grid;gap:14px}.hmpWheelTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.hmpWheelTitle{font-size:28px;font-weight:1000;letter-spacing:.4px}.hmpWheelSub{color:#fed7aa;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:1.4px}.hmpWheelClose{flex:0 0 auto;min-width:42px;border-radius:999px}.hmpWheelStage{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center}.hmpWheelWrap{position:relative;width:340px;height:340px;margin:auto}.hmpWheelPointer{position:absolute;left:50%;top:-8px;transform:translateX(-50%);z-index:3;width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-bottom:34px solid #fef3c7;filter:drop-shadow(0 5px 6px rgba(0,0,0,.5))}.hmpWheelDisc{position:absolute;inset:0;border-radius:50%;border:10px solid rgba(250,204,21,.9);background:conic-gradient(from 0deg,#7c2d12 0 30deg,#1d4ed8 30deg 60deg,#92400e 60deg 90deg,#166534 90deg 120deg,#581c87 120deg 150deg,#991b1b 150deg 180deg,#854d0e 180deg 210deg,#0369a1 210deg 240deg,#7f1d1d 240deg 270deg,#365314 270deg 300deg,#4c1d95 300deg 330deg,#9a3412 330deg 360deg);box-shadow:inset 0 0 0 8px rgba(0,0,0,.25),0 12px 34px rgba(0,0,0,.45);transition:transform 3.2s cubic-bezier(.12,.76,.18,1);will-change:transform}.hmpWheelDisc.spinning{filter:saturate(1.18) brightness(1.08)}.hmpWheelCenter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:116px;height:116px;border-radius:50%;display:grid;place-items:center;text-align:center;background:radial-gradient(circle,#fff7ed,#f59e0b);border:7px solid rgba(0,0,0,.35);color:#431407;font-weight:1000;box-shadow:0 8px 22px rgba(0,0,0,.45);z-index:2}.hmpWheelCenter span{font-size:34px;line-height:1}.hmpWheelLegend{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:4px}.hmpWheelSeg{font-size:11px;padding:6px 7px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hmpWheelSeg.hit{border-color:rgba(250,204,21,.75);background:rgba(250,204,21,.14);box-shadow:0 0 16px rgba(250,204,21,.22)}.hmpWheelReward{display:grid;gap:10px}.hmpWheelRewardCard{padding:16px;border-radius:18px;border:1px solid rgba(250,204,21,.28);background:rgba(250,204,21,.08)}.hmpWheelRewardLabel{font-size:32px;font-weight:1000}.hmpWheelRewardPrize{font-size:42px;font-weight:1000;color:#fef3c7;text-shadow:0 0 18px rgba(250,204,21,.38)}.hmpWheelRewardDetail{line-height:1.55;color:rgba(255,255,255,.78)}.hmpWheelActions{display:flex;justify-content:flex-end;gap:10px}
-    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}.hmpWheelStage{grid-template-columns:1fr}.hmpWheelWrap{width:300px;height:300px}}@media(max-width:720px){.hmpStage.hmpStageMulti,.hmpBuildPower4{grid-template-columns:1fr!important}.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(48px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
+    @media(max-width:920px){.hmpGameGrid{grid-template-columns:1fr}.hmpJackpots,.hmpMeters{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.hmpStage.hmpStageMulti,.hmpBuildPower4{grid-template-columns:1fr!important}.hmpHero{align-items:flex-start;flex-direction:column}.hmpHero h2{font-size:26px}.hmpStage{grid-template-columns:repeat(var(--hmp-cols,5),minmax(48px,1fr))!important;grid-template-rows:repeat(var(--hmp-rows,3),68px)!important;gap:6px!important;padding:8px!important}.hmpIcon{font-size:24px}.hmpLabel{display:none}.hmpJackpots,.hmpMeters{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
 }
@@ -878,6 +897,7 @@ export function mountHuffMorePuff(mountEl, store) {
         <div id="hmp_winList" class="hmpWinList"></div>
       </div>
 
+
       <div id="hmp_wheelOverlay" class="hmpWheelOverlay hidden" aria-hidden="true">
         <div class="hmpWheelModal" role="dialog" aria-modal="true" aria-labelledby="hmp_wheelTitle">
           <div class="hmpWheelTop">
@@ -901,7 +921,7 @@ export function mountHuffMorePuff(mountEl, store) {
                 <div class="hmpWheelSub">Reward</div>
                 <div id="hmp_wheelRewardLabel" class="hmpWheelRewardLabel">—</div>
                 <div id="hmp_wheelRewardPrize" class="hmpWheelRewardPrize">—</div>
-                <div id="hmp_wheelRewardDetail" class="hmpWheelRewardDetail">The wheel is spinning...</div>
+                <div id="hmp_wheelRewardDetail" class="hmpWheelRewardDetail">The wheel is ready.</div>
               </div>
               <div class="hmpWheelActions">
                 <button id="hmp_wheelContinue" class="ok" type="button" disabled>Collect</button>
@@ -917,7 +937,7 @@ export function mountHuffMorePuff(mountEl, store) {
           <b>Bet Range:</b> ${money(BET_OPTIONS[0])} to ${money(BET_OPTIONS[BET_OPTIONS.length - 1])} per spin.<br>
           <b>243 Ways:</b> matching paying symbols win left-to-right across adjacent reels. Wolf is wild.<br>
           <b>Hard Hat Free Games:</b> ${HARD_HAT_TRIGGER}+ Hard Hats trigger ${currentVariant().freeSpins ?? FEATURE_FREE_SPINS} free games. Hats build Straw, then Stick, then Mansion. During free games, hats do <b>not</b> retrigger more spins. At the end, every built house pays; Mansions have the best chance to reveal Mini/Minor/Major/Grand word bonuses. Hats on full Mansion spaces help unfinished spaces instead.<br>
-          <b>Buzzsaw Wheel:</b> 3+ Buzzsaws trigger a wheel: credits, Mini/Minor/Major/Grand jackpots, Mansion Bonus, Buzzsaw Sweep, or Mega Hat Bonus.<br>
+          <b>Buzzsaw Wheel:</b> 3+ Buzzsaws trigger a wheel. Paid spins award credits/jackpots; Mansion Bonus, Buzzsaw Sweep, and Mega Hat are only available during construction free games.<br>
           <b>Bet Scaling:</b> higher bet sizes increase Hard Hat, Buzzsaw, Buzzsaw Wheel, and higher jackpot-tier chances.
           <br><b>Jackpots:</b> scale with bet. Grand pays 5,000× bet.
         </div>
@@ -966,7 +986,7 @@ export function mountHuffMorePuff(mountEl, store) {
       <b>Bet Range:</b> ${money(BET_OPTIONS[0])} to ${money(BET_OPTIONS[BET_OPTIONS.length - 1])} per spin.<br>
       <b>${COLS === 5 ? "243 Ways" : "27 Ways"}:</b> matching paying symbols win left-to-right across adjacent reels. Wolf is wild.<br>
       <b>Hard Hat Free Games:</b> ${v.hardHatTrigger}+ Hard Hats trigger ${v.freeSpins} free games. During free games, Hard Hats only build or upgrade houses and do <b>not</b> retrigger more free games. Every Straw, Stick, and Mansion house pays at the end; Mansions are weighted toward Mini/Minor/Major/Grand word bonuses.<br>
-      ${v.enableBuzzsaw ? `<b>Buzzsaw Wheel:</b> 3+ Buzzsaws${v.extraWheelFromHats ? " or 3+ Hats" : ""} trigger a wheel with credits, jackpots, and feature bonuses.<br>` : `<b>Original Mode:</b> no Buzzsaw wheel; the wolf resolves the house board after free games.<br>`}
+      ${v.enableBuzzsaw ? `<b>Buzzsaw Wheel:</b> 3+ Buzzsaws${v.extraWheelFromHats ? " or 3+ Hats" : ""} trigger a wheel. Paid-spin wheels only award credits/jackpots. Mansion Bonus, Buzzsaw Sweep, Mega Hat, and Big Bad Wolf upgrades are only available during construction free games.<br>` : `<b>Original Mode:</b> no Buzzsaw wheel; the wolf resolves the house board after free games.<br>`}
       ${v.enableUpgradeWheel ? `<b>Upgrade Wheel:</b> can unlock a second-level Grand/Super chase.<br>` : ""}
       ${v.powerGrids > 1 ? `<b>Power 4:</b> this mode displays and rolls four 3×5 grids. Paid spins aggregate all four grids for ways pays and feature triggers; construction free games also roll all four grids and build four construction boards.<br>` : ""}
       <b>Jackpots:</b> scale with bet. ${v.enableSuper ? "Super is above Grand." : "Grand is the top prize."}
@@ -996,6 +1016,7 @@ export function mountHuffMorePuff(mountEl, store) {
     el.free.textContent = feature.spinsLeft > 0 ? `Free Games: ${feature.spinsLeft} @ ${money(featureBet)}` : "Free Games: 0";
   }
 
+
   function wheelSegmentLabelFor(wheel) {
     if (!wheel) return "Credit";
     if (wheel.type === "JACKPOT") return wheel.label;
@@ -1008,8 +1029,16 @@ export function mountHuffMorePuff(mountEl, store) {
     return wheel.label ?? "Credit";
   }
 
-  function wheelSegmentsForCurrentVariant() {
+  function wheelSegmentsForCurrentVariant({ construction = false } = {}) {
     const v = currentVariant();
+
+    if (!construction) {
+      const paidSegments = ["MINI", "Credit", "MINOR", "Credit", "MAJOR", "Credit", "GRAND", "Credit"];
+      if (v.enableUpgradeWheel) paidSegments.splice(5, 0, "Upgrade");
+      if (v.enableSuper) paidSegments.splice(paidSegments.length - 1, 0, "SUPER");
+      return paidSegments;
+    }
+
     const segments = [
       "MINI", "Mansion Bonus", "MINOR", "Buzzsaw Sweep",
       "Credit", "Mega Hat", "MAJOR", "Mansion Bonus",
@@ -1036,17 +1065,13 @@ export function mountHuffMorePuff(mountEl, store) {
     return `${wheel.label || "Reward"} awarded ${awardText}.`;
   }
 
-  async function showBuzzsawWheelPopup(wheel, wheelAward, sawCount, bet) {
+  async function showBuzzsawWheelPopup(wheel, wheelAward, sawCount, bet, { construction = false } = {}) {
     if (!el.wheelOverlay || !el.wheelDisc) return;
 
-    const segments = wheelSegmentsForCurrentVariant();
-    const targetLabel = wheelSegmentLabelFor(wheel);
-    let targetIndex = segments.findIndex((x) => x === targetLabel || (targetLabel.includes(x) && x !== "Credit"));
-    if (targetIndex < 0 && wheel?.type === "JACKPOT") targetIndex = segments.findIndex((x) => x === wheel.label);
-    if (targetIndex < 0 && wheel?.type === "CREDIT") targetIndex = segments.findIndex((x) => x === "Credit");
-    if (targetIndex < 0) targetIndex = Math.floor(Math.random() * segments.length);
+    const segments = wheelSegmentsForCurrentVariant({ construction });
+    const placeholderSegments = segments.map((label) => `<div class="hmpWheelSeg">${label}</div>`).join("");
 
-    el.wheelLegend.innerHTML = segments.map((label, idx) => `<div class="hmpWheelSeg ${idx === targetIndex ? "hit" : ""}">${label}</div>`).join("");
+    el.wheelLegend.innerHTML = placeholderSegments;
     el.wheelRewardLabel.textContent = "Spinning...";
     el.wheelRewardPrize.textContent = "—";
     el.wheelRewardDetail.textContent = `Triggered by ${sawCount || 3}+ Buzzsaw symbols. Bet: ${money(bet)}.`;
@@ -1054,11 +1079,21 @@ export function mountHuffMorePuff(mountEl, store) {
     el.wheelOverlay.classList.remove("hidden");
     el.wheelOverlay.setAttribute("aria-hidden", "false");
 
-    // Reset first so repeated wheel hits visibly spin again.
+    // Reset first so repeated wheel hits visibly spin again. At this point no
+    // segment is highlighted and no prize is revealed.
     el.wheelDisc.classList.remove("spinning");
     el.wheelDisc.style.transition = "none";
     el.wheelDisc.style.transform = "rotate(0deg)";
-    await sleep(40);
+    await sleep(80);
+
+    const targetLabel = wheelSegmentLabelFor(wheel);
+    let targetIndex = segments.findIndex((x) => x === targetLabel || (targetLabel.includes(x) && x !== "Credit"));
+    if (targetIndex < 0 && wheel?.type === "JACKPOT") targetIndex = segments.findIndex((x) => x === wheel.label);
+    if (targetIndex < 0 && wheel?.type === "CREDIT") {
+      const creditIndexes = segments.map((x, idx) => x === "Credit" ? idx : -1).filter((idx) => idx >= 0);
+      targetIndex = creditIndexes.length ? creditIndexes[Math.floor(Math.random() * creditIndexes.length)] : -1;
+    }
+    if (targetIndex < 0) targetIndex = Math.floor(Math.random() * segments.length);
 
     const segmentSize = 360 / segments.length;
     const targetCenter = targetIndex * segmentSize + segmentSize / 2;
@@ -1070,6 +1105,7 @@ export function mountHuffMorePuff(mountEl, store) {
 
     await sleep(3350);
     el.wheelDisc.classList.remove("spinning");
+    el.wheelLegend.innerHTML = segments.map((label, idx) => `<div class="hmpWheelSeg ${idx === targetIndex ? "hit" : ""}">${label}</div>`).join("");
     el.wheelRewardLabel.textContent = wheel?.label ?? targetLabel;
     el.wheelRewardPrize.textContent = money(wheelAward || 0);
     el.wheelRewardDetail.textContent = wheelRewardDetail(wheel, wheelAward, sawCount, bet);
@@ -1097,12 +1133,12 @@ export function mountHuffMorePuff(mountEl, store) {
   el.variant.addEventListener("change", () => { currentVariantKey = el.variant.value; resetVariant(); });
   el.bet.addEventListener("change", renderJackpots);
 
-  async function runBuzzsawWheelIfNeeded(result, bet) {
+  async function runBuzzsawWheelIfNeeded(result, bet, { construction = false } = {}) {
     if (!result.wheelTrigger) return result;
 
     el.status.textContent = "Buzzsaw wheel spinning...";
     await sleep(500);
-    const wheel = spinBuzzsawWheel(result.sawCount, bet);
+    const wheel = spinBuzzsawWheel(result.sawCount, bet, { construction });
     let wheelAward = 0;
     let wheelAffected = [];
 
@@ -1143,7 +1179,7 @@ export function mountHuffMorePuff(mountEl, store) {
     result.wheelAffected = wheelAffected;
     result.totalWin += wheelAward;
 
-    await showBuzzsawWheelPopup(wheel, wheelAward, result.sawCount, bet);
+    await showBuzzsawWheelPopup(wheel, wheelAward, result.sawCount, bet, { construction });
     return result;
   }
 
@@ -1180,8 +1216,8 @@ export function mountHuffMorePuff(mountEl, store) {
       await animateSpin(el, result, !paidSpin);
       markCells(mountEl, result);
 
-      if (paidSpin) result = await runBuzzsawWheelIfNeeded(result, bet);
-      if (!paidSpin && result.wheel) await showBuzzsawWheelPopup(result.wheel, result.wheelAward, result.sawCount, bet);
+      if (paidSpin) result = await runBuzzsawWheelIfNeeded(result, bet, { construction: false });
+      if (!paidSpin && result.wheel) await showBuzzsawWheelPopup(result.wheel, result.wheelAward, result.sawCount, bet, { construction: true });
 
       if (paidSpin && result.featureTrigger) {
         feature.active = true;
